@@ -12,7 +12,7 @@ bl_info = {
     "blender": (2, 83, 0),
     "location": "Global/Text Editor",
     "warning": "",
-    "wiki_url": "",
+    "wiki_url": "https://github.com/1C0D/Addon-Installer_Script-Runner_BlenderAddon/blob/master/Addon_Installer-Script_Runner.py",
     "category": "Development",
 }
 
