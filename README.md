@@ -5,7 +5,7 @@
 * Install/reload addon *.py or *.zip | Run script from File (using a browser) 
 so you can edit an addon or a script with an external text editor, save it, and run the function
 
-* New feature: Now multi file selection supported and so multi Install/reload 
+* New feature: Now multi files selection supported and so multi Install/reload 
 ideal to install/reinstall a list of addon and updated one... (*.py or *.zip)
 
 * Install/reload addon from Text editor (you can just drag the file)
