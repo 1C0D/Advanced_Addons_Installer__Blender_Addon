@@ -1,4 +1,5 @@
 # Addon Installer|Script Runner  (BlenderAddon)
+# to install/modify addons (even several at once) | run scripts from any blender area or external IDE
 
 ## New feature: Now multi file selection supported
 So you can install several selected addons at once (*.py or *.zip)
