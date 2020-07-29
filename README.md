@@ -1,6 +1,9 @@
 # Addon Installer|Script Runner  (BlenderAddon)
 
-## Install/reload addon (.py,.zip) | Run script from File (using a browser) 
+## New feature: Now multi file selection supported
+So you can install several selected addons at once (*.py or *.zip)
+
+## Install/reload addon *.py or *.zip | Run script from File (using a browser) 
 so you can edit an addon or a script with an external text editor, save it, and run the function
 
 ## Install/reload addon from Text editor (you can just drag the file)
