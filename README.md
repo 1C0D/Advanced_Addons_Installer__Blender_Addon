@@ -1,6 +1,7 @@
 # Addon Installer|Script Runner  (BlenderAddon)
-# to install/reload addons (even several at once) | run scripts from any blender area or external IDE 
-# and install/reload addons paste in the blender Text Editor 
+# to install/reload addons (even several at once) | run scripts from any blender area or from an external IDE and install/reload addons paste in the blender Text Editor 
+
+
 
 ## Install/reload addon *.py or *.zip | Run script from File (using a browser) 
 so you can edit an addon or a script with an external text editor, save it, and run the function
