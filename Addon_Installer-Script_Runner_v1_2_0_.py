@@ -47,6 +47,7 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
         dirname = os.path.dirname(self.filepath)
         name = Path(p).stem
 
+
         # check if bl_info (Script or not)
         Script = True
         if Path(p).suffix == '.py' or Path(p).suffix == '.txt': 	 # == and not is!
@@ -58,12 +59,6 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
 
         if Path(p).suffix == '.zip':
             Script = False
-            # changing the name of a zip, the name of the first subfolder is different. when doing enable, name is the name of the subfolder...
-            # was a nasty error. lol
-            with ZipFile(p, 'r') as f:
-                names = [info.filename for info in f.infolist()
-                         if info.is_dir()]
-            namezip = names[0][:-1]
 
         if Script:
 
@@ -112,6 +107,13 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
                 # enable
                 try:
                     if Path(p).suffix == '.zip':
+                    # changing the name of a zip, the name of the first subfolder is different. when doing enable, name is the name of the subfolder...
+
+                        with ZipFile(p, 'r') as f:
+                            names = [info.filename for info in f.infolist()
+                                     if info.is_dir()]
+                        namezip = names[0][:-1]
+                        
                         bpy.ops.preferences.addon_enable(module=namezip)
                     else:
                         bpy.ops.preferences.addon_enable(module=name)
