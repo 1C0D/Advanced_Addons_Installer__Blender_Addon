@@ -213,7 +213,7 @@ def register():
 
     # key
     wm = bpy.context.window_manager
-    kc = wm.keyconfigs.user
+    kc = wm.keyconfigs.addon
 
     for k in kc.keymaps["Text"].keymap_items:
         if k.idname == "wm.call_menu" and k.properties.name == "SCREEN_MT_user_menu" and k.active:
@@ -231,7 +231,7 @@ def unregister():
 
     # key
     wm = bpy.context.window_manager
-    kc = wm.keyconfigs.user
+    kc = wm.keyconfigs.addon
     for k in kc.keymaps["Text"].keymap_items:
         if k.idname == "wm.call_menu" and k.properties.name == "SCREEN_MT_user_menu" and k.active:
             if k.properties.name == "SCREEN_MT_user_menu":
