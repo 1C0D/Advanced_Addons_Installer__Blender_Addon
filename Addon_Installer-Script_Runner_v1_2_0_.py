@@ -93,21 +93,22 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
                     
             if len(self.files) > 1:
                 self.report({'INFO'}, "MULTI INSTALLED/RELOADED ") 
-                
-            MyList=[(addon.bl_info['category'],addon.bl_info['name'], addon.bl_info['version'],addon.__name__) 
-                for addon in addon_utils.modules()]
-            dict = Counter(word for i,j,k,l in MyList for word in [(i,j)])
+            
+            # search dupplicates addon and old versions
+            MyList=[(addon.bl_info['category'],addon.bl_info['name'], addon.bl_info['version'], addon.__name__) 
+                for addon in addon_utils.modules()]          #tuple with 4 values                   
+            dict = Counter(word for i,j,k,l in MyList for word in [(i,j)])  #to check "category: name"
 
-            counter=[(word ,count) for word,count in dict.most_common() if count > 1  ]
+            counter=[(word ,count) for word,count in dict.most_common() if count > 1  ]  #dupplicates
 
             version=[]
             for i,j,k,l in MyList:
                 for u,v in counter:
                     if (i,j) == u:
-                        version.append([i,j,k,l])
-
+                        version.append([i,j,k,l])  #new tuple with dupplicates
             ##e.g:[['Development', ' A', (1, 8, 3), 'Afghf'], ['Development', ' A', (1, 8, 3), 'A1'], ['Development', ' A', (1, 8, 2), 'A2121']]
-            version_tri=sorted(version, key=lambda element: (element[1], element[2], element[3]))[0:-1]
+            
+            version_tri=sorted(version, key=lambda element: (element[0], element[1], element[2]))[:-1] #sorted by 3 first values category/name/version, less last list value
 
             for addon in addon_utils.modules():
                 for i,j,k,l in version_tri:
