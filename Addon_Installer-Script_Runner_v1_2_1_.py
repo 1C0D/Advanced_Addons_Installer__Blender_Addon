@@ -34,6 +34,8 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
         subtype='FILE_PATH'  # to be sure to select a file
     )
 
+    clean_doubles_update_versions: bpy.props.BoolProperty(default=True)
+
     files: bpy.props.CollectionProperty(type=bpy.types.PropertyGroup)
     # https://blender.stackexchange.com/questions/30678/bpy-file-browser-get-selected-file-names
 
@@ -46,7 +48,6 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
         p = self.filepath
         dirname = os.path.dirname(self.filepath)
         name = Path(p).stem
-
 
         # check if bl_info (Script or not)
         Script = True
@@ -61,19 +62,21 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
             Script = False
 
         if Script:
-
             exec(compile(open(p).read(), p, 'exec'))  # run script
             self.report({'INFO'}, "RUN SCRIPT: " + name)
             return {'FINISHED'}
 
         else:
+
+            names = []
             for f in self.files:
                 p = os.path.join(dirname, f.name)
                 name = Path(p).stem
+                names.append(name)
 
                 try:
                     bpy.ops.preferences.addon_disable(module=name)
-                    time.sleep(0.03)
+                    # time.sleep(0.03)
                 except RuntimeError:
                     print(
                         '###################################################couldn\'t addon_disable')
@@ -85,7 +88,7 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
                 try:
 
                     bpy.ops.preferences.addon_remove(module=name)
-                    time.sleep(0.03)
+                    # time.sleep(0.03)
                 except RuntimeError:
                     print(
                         '###################################################couldn\'t addon_remove')
@@ -96,7 +99,7 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
                 try:
 
                     bpy.ops.preferences.addon_install(filepath=p)
-                    time.sleep(0.03)
+                    # time.sleep(0.03)
                 except RuntimeError:
                     print(
                         '###################################################couldn\'t addon_install')
@@ -107,17 +110,17 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
                 # enable
                 try:
                     if Path(p).suffix == '.zip':
-                    # changing the name of a zip, the name of the first subfolder is different. when doing enable, name is the name of the subfolder...
+                        # changing the name of a zip, the name of the first subfolder is different. when doing enable, name is the name of the subfolder...
 
                         with ZipFile(p, 'r') as f:
                             names = [info.filename for info in f.infolist()
                                      if info.is_dir()]
                         namezip = names[0][:-1]
-                        
+
                         bpy.ops.preferences.addon_enable(module=namezip)
                     else:
                         bpy.ops.preferences.addon_enable(module=name)
-                    time.sleep(0.03)
+                    # time.sleep(0.03)
 
                 except RuntimeError:
                     print(
@@ -132,30 +135,52 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
             if len(self.files) > 1:
                 self.report({'INFO'}, "MULTI INSTALLED/RELOADED ")
 
-            # search dupplicates addon and old versions
-            MyList = [(addon.bl_info['category'], addon.bl_info['name'], addon.bl_info['version'], addon.__name__)
-                      for addon in addon_utils.modules()]  # tuple with 4 values
-            dict = Counter(word for i, j, k, l in MyList for word in [
-                           (i, j)])  # to check "category: name"
+            # search dupplicates addon and old versions in all addons to keep only last update
+            if self.clean_doubles_update_versions:
+                my_list = [(addon.bl_info['category'], addon.bl_info['name'], addon.bl_info['version'], addon.__name__)
+                           for addon in addon_utils.modules()]  # tuple with 4 values
 
-            counter = [(word, count) for word,
-                       count in dict.most_common() if count > 1]  # dupplicates
+                my_select_list = [(addon.bl_info['category'], addon.bl_info['name'], addon.bl_info['version'], addon.__name__)
+                                  for addon in addon_utils.modules() if addon.__name__ in names]  # will be needed to print result
 
-            version = []
-            for i, j, k, l in MyList:
-                for u, v in counter:
-                    if (i, j) == u:
-                        # new tuple with dupplicates
-                        version.append([i, j, k, l])
-            ##e.g:[['Development', ' A', (1, 8, 3), 'Afghf'], ['Development', ' A', (1, 8, 3), 'A1'], ['Development', ' A', (1, 8, 2), 'A2121']]
+                dict = Counter(word for i, j, k, l in my_list for word in [
+                               (i, j)])  # to check "category: name" occurences
 
-            version_tri = sorted(version, key=lambda element: (element[0], element[1], element[2]))[
-                :-1]  # sorted by 3 first values category/name/version, less last list value
+                counter = [(word, count) for word,
+                           count in dict.most_common() if count > 1]  # dupplicates
 
-            for addon in addon_utils.modules():
-                for i, j, k, l in version_tri:
-                    if (addon.bl_info['category'], addon.bl_info['name'], addon.bl_info['version']) == (i, j, k):
-                        bpy.ops.preferences.addon_remove(module=l)
+                version = []
+                for i, j, k, l in my_list:
+                    for u, v in counter:
+                        if (i, j) == u:
+                            # new tuple with dupplicates
+                            version.append([i, j, k, l])
+                ##e.g:[['Development', ' A', (1, 8, 3), 'Afghf'], ['Development', ' A', (1, 8, 3), 'A1'], ['Development', ' A', (1, 8, 2), 'A2121']]
+
+                version_tri = sorted(version, key=lambda element: (element[0], element[1], element[2]))[
+                    :-1]  # sorted by 3 first values category/name/version, less last list value
+
+                tuple_version_tri = tuple(tuple(_) for _ in version_tri)
+
+                # for addon in addon_utils.modules():
+                for u, v, w, z in my_list:
+                    for i, j, k, l in version_tri:
+                        # if (addon.bl_info['category'], addon.bl_info['name'], addon.bl_info['version']) == (i, j, k):
+                        if (u, v, w) == (i, j, k):
+                            bpy.ops.preferences.addon_remove(module=l)
+
+                install = tuple(set(my_select_list) - set(tuple_version_tri))
+                print('')
+                print(
+                    f'Your selection (category|name|version|file_name): {my_select_list}')
+                print('')
+                print(
+                    f'Removed (category|name|version|file_name): {tuple_version_tri}')
+                print('')
+                print(
+                    f'Installed (category|name|version|file_name): {install}')
+                    
+                well this is not working if zip selected...
 
             return {'FINISHED'}
 
@@ -206,7 +231,7 @@ class INSTALLER_OT_TextEditor(bpy.types.Operator):
         # disable
         try:
             bpy.ops.preferences.addon_disable(module=name[:-3])
-            time.sleep(0.03)
+            # time.sleep(0.03)
         except RuntimeError:
             print(
                 '###################################################couldn\'t addon_disable')
@@ -216,11 +241,11 @@ class INSTALLER_OT_TextEditor(bpy.types.Operator):
         ar = context.screen.areas
         area = next((a for a in ar if a.type == 'PREFERENCES'), None)
         bpy.ops.preferences.addon_refresh({'area': area})
-        time.sleep(0.03)
+        # time.sleep(0.03)
         # enable
         try:
             bpy.ops.preferences.addon_enable(module=name[:-3])
-            time.sleep(0.03)
+            # time.sleep(0.03)
         except RuntimeError:
             print(
                 '###################################################couldn\'t addon_enable')
