@@ -5,13 +5,15 @@ import bpy
 import os
 import addon_utils
 from collections import Counter
+from zipfile import ZipFile
+
 
 bl_info = {
     "name": "Addon Installer|Script Runner",
     "description": "install save reload addons or run scripts just selecting a file",
     "author": "1C0D and from Amaral Krichman's addon",
     # multi selection file added for multi addons installation
-    "version": (1, 2, 0),
+    "version": (1, 2, 1),
     "blender": (2, 83, 0),
     "location": "Global/Text Editor",
     "warning": "",
@@ -38,6 +40,9 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
     def execute(self, context):
 
         print('#'*50)
+        print('ADDON/SCRIPT INSTALLER')
+        print('#'*50)
+
         p = self.filepath
         dirname = os.path.dirname(self.filepath)
         name = Path(p).stem
@@ -49,14 +54,19 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
                 body = f.readlines()
                 for line in body:
                     if 'bl_info' in line and not line.startswith("#"):
-                        print('addon')
                         Script = False
 
         if Path(p).suffix == '.zip':
             Script = False
+            # changing the name of a zip, the name of the first subfolder is different. when doing enable, name is the name of the subfolder...
+            # was a nasty error. lol
+            with ZipFile(p, 'r') as f:
+                names = [info.filename for info in f.infolist()
+                         if info.is_dir()]
+            namezip = names[0][:-1]
 
         if Script:
-            print('not addon')
+
             exec(compile(open(p).read(), p, 'exec'))  # run script
             self.report({'INFO'}, "RUN SCRIPT: " + name)
             return {'FINISHED'}
@@ -66,54 +76,84 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
                 p = os.path.join(dirname, f.name)
                 name = Path(p).stem
 
-                # disable
                 try:
                     bpy.ops.preferences.addon_disable(module=name)
                     time.sleep(0.03)
                 except RuntimeError:
-                    self.report({'ERROR'}, "ADD-ON ERROR, see in the console")
+                    print(
+                        '###################################################couldn\'t addon_disable')
+                    self.report(
+                        {'ERROR'}, "CAN'T DISABLE ADDON, see in the console")
                     return {'CANCELLED'}
 
                 # remove/install
-                bpy.ops.preferences.addon_remove(module=name)
-                time.sleep(0.03)
-                bpy.ops.preferences.addon_install(filepath=p)
-                time.sleep(0.03)
+                try:
+
+                    bpy.ops.preferences.addon_remove(module=name)
+                    time.sleep(0.03)
+                except RuntimeError:
+                    print(
+                        '###################################################couldn\'t addon_remove')
+                    self.report(
+                        {'ERROR'}, "CAN'T REMOVE ADDON, see in the console")
+                    return {'CANCELLED'}
+
+                try:
+
+                    bpy.ops.preferences.addon_install(filepath=p)
+                    time.sleep(0.03)
+                except RuntimeError:
+                    print(
+                        '###################################################couldn\'t addon_install')
+                    self.report(
+                        {'ERROR'}, "CAN'T INSTALL ADDON, see in the console")
+                    return {'CANCELLED'}
 
                 # enable
                 try:
-                    bpy.ops.preferences.addon_enable(module=name)
+                    if Path(p).suffix == '.zip':
+                        bpy.ops.preferences.addon_enable(module=namezip)
+                    else:
+                        bpy.ops.preferences.addon_enable(module=name)
                     time.sleep(0.03)
+
                 except RuntimeError:
-                    self.report({'ERROR'}, "ADD-ON ERROR, see in the console")
+                    print(
+                        '###################################################couldn\'t addon_enable')
+                    self.report(
+                        {'ERROR'}, "CAN'T ENABLE ADDON, see in the console")
                     return {'CANCELLED'}
 
                 if len(self.files) < 2:
                     self.report({'INFO'}, "INSTALLED/RELOADED: " + name)
-                    
+
             if len(self.files) > 1:
-                self.report({'INFO'}, "MULTI INSTALLED/RELOADED ") 
-            
+                self.report({'INFO'}, "MULTI INSTALLED/RELOADED ")
+
             # search dupplicates addon and old versions
-            MyList=[(addon.bl_info['category'],addon.bl_info['name'], addon.bl_info['version'], addon.__name__) 
-                for addon in addon_utils.modules()]          #tuple with 4 values                   
-            dict = Counter(word for i,j,k,l in MyList for word in [(i,j)])  #to check "category: name"
+            MyList = [(addon.bl_info['category'], addon.bl_info['name'], addon.bl_info['version'], addon.__name__)
+                      for addon in addon_utils.modules()]  # tuple with 4 values
+            dict = Counter(word for i, j, k, l in MyList for word in [
+                           (i, j)])  # to check "category: name"
 
-            counter=[(word ,count) for word,count in dict.most_common() if count > 1  ]  #dupplicates
+            counter = [(word, count) for word,
+                       count in dict.most_common() if count > 1]  # dupplicates
 
-            version=[]
-            for i,j,k,l in MyList:
-                for u,v in counter:
-                    if (i,j) == u:
-                        version.append([i,j,k,l])  #new tuple with dupplicates
+            version = []
+            for i, j, k, l in MyList:
+                for u, v in counter:
+                    if (i, j) == u:
+                        # new tuple with dupplicates
+                        version.append([i, j, k, l])
             ##e.g:[['Development', ' A', (1, 8, 3), 'Afghf'], ['Development', ' A', (1, 8, 3), 'A1'], ['Development', ' A', (1, 8, 2), 'A2121']]
-            
-            version_tri=sorted(version, key=lambda element: (element[0], element[1], element[2]))[:-1] #sorted by 3 first values category/name/version, less last list value
+
+            version_tri = sorted(version, key=lambda element: (element[0], element[1], element[2]))[
+                :-1]  # sorted by 3 first values category/name/version, less last list value
 
             for addon in addon_utils.modules():
-                for i,j,k,l in version_tri:
-                    if (addon.bl_info['category'],addon.bl_info['name'],addon.bl_info['version'])== (i,j,k):
-                        bpy.ops.preferences.addon_remove(module=l)   
+                for i, j, k, l in version_tri:
+                    if (addon.bl_info['category'], addon.bl_info['name'], addon.bl_info['version']) == (i, j, k):
+                        bpy.ops.preferences.addon_remove(module=l)
 
             return {'FINISHED'}
 
@@ -164,22 +204,25 @@ class INSTALLER_OT_TextEditor(bpy.types.Operator):
         # disable
         try:
             bpy.ops.preferences.addon_disable(module=name[:-3])
-            time.sleep(0.05)
+            time.sleep(0.03)
         except RuntimeError:
-            # error in the unregister/register part of the addon
-            self.report({'ERROR'}, "ADD-ON ERROR, see in the console")
+            print(
+                '###################################################couldn\'t addon_disable')
+            self.report({'ERROR'}, "CAN'T DISABLE ADDON, see in the console")
             return {'CANCELLED'}
         # refresh
         ar = context.screen.areas
         area = next((a for a in ar if a.type == 'PREFERENCES'), None)
         bpy.ops.preferences.addon_refresh({'area': area})
-        time.sleep(0.05)
+        time.sleep(0.03)
         # enable
         try:
             bpy.ops.preferences.addon_enable(module=name[:-3])
-            time.sleep(0.05)
+            time.sleep(0.03)
         except RuntimeError:
-            self.report({'ERROR'}, "ADD-ON ERROR, see in the console")
+            print(
+                '###################################################couldn\'t addon_enable')
+            self.report({'ERROR'}, "CAN'T ENABLE ADDON, see in the console")
             return {'CANCELLED'}
 
         self.report({'INFO'}, "Installed/Reloaded: " + name)
@@ -214,7 +257,7 @@ def register():
 
     # key
     wm = bpy.context.window_manager
-    kc = wm.keyconfigs.addon
+    kc = wm.keyconfigs.user
 
     for k in kc.keymaps["Text"].keymap_items:
         if k.idname == "wm.call_menu" and k.properties.name == "SCREEN_MT_user_menu" and k.active:
