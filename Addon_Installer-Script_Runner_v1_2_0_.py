@@ -3,13 +3,15 @@ from pathlib import Path
 import time
 import bpy
 import os
+import addon_utils
+from collections import Counter
 
 bl_info = {
     "name": "Addon Installer|Script Runner",
     "description": "install save reload addons or run scripts just selecting a file",
     "author": "1C0D and from Amaral Krichman's addon",
     # multi selection file added for multi addons installation
-    "version": (1, 1, 0),
+    "version": (1, 2, 0),
     "blender": (2, 83, 0),
     "location": "Global/Text Editor",
     "warning": "",
@@ -67,29 +69,50 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
                 # disable
                 try:
                     bpy.ops.preferences.addon_disable(module=name)
-                    time.sleep(0.05)
+                    time.sleep(0.03)
                 except RuntimeError:
                     self.report({'ERROR'}, "ADD-ON ERROR, see in the console")
                     return {'CANCELLED'}
 
                 # remove/install
                 bpy.ops.preferences.addon_remove(module=name)
-                time.sleep(0.05)
+                time.sleep(0.03)
                 bpy.ops.preferences.addon_install(filepath=p)
-                time.sleep(0.05)
+                time.sleep(0.03)
 
                 # enable
                 try:
                     bpy.ops.preferences.addon_enable(module=name)
-                    time.sleep(0.05)
+                    time.sleep(0.03)
                 except RuntimeError:
                     self.report({'ERROR'}, "ADD-ON ERROR, see in the console")
                     return {'CANCELLED'}
 
                 if len(self.files) < 2:
                     self.report({'INFO'}, "INSTALLED/RELOADED: " + name)
+                    
             if len(self.files) > 1:
-                self.report({'INFO'}, "MULTI INSTALLED/RELOADED ")
+                self.report({'INFO'}, "MULTI INSTALLED/RELOADED ") 
+                
+            MyList=[(addon.bl_info['category'],addon.bl_info['name'], addon.bl_info['version'],addon.__name__) 
+                for addon in addon_utils.modules()]
+            dict = Counter(word for i,j,k,l in MyList for word in [(i,j)])
+
+            counter=[(word ,count) for word,count in dict.most_common() if count > 1  ]
+
+            version=[]
+            for i,j,k,l in MyList:
+                for u,v in counter:
+                    if (i,j) == u:
+                        version.append([i,j,k,l])
+
+            ##e.g:[['Development', ' A', (1, 8, 3), 'Afghf'], ['Development', ' A', (1, 8, 3), 'A1'], ['Development', ' A', (1, 8, 2), 'A2121']]
+            version_tri=sorted(version, key=lambda element: (element[1], element[2], element[3]))[0:-1]
+
+            for addon in addon_utils.modules():
+                for i,j,k,l in version_tri:
+                    if (addon.bl_info['category'],addon.bl_info['name'],addon.bl_info['version'])== (i,j,k):
+                        bpy.ops.preferences.addon_remove(module=l)   
 
             return {'FINISHED'}
 
