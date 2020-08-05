@@ -8,7 +8,7 @@ so you can edit an addon or a script with an external text editor, save it, and 
 * multi files selection supported and so multi Install/reload 
 ideal to install/reinstall a list of addon and updated one... (*.py or *.zip)
 
-* New feature: added a cleaner so you can update an addon and it will clean automatically previous versions 
+#* New feature: added a cleaner so you can update an addon and it will clean automatically previous versions 
 
 * Install/reload addon from Text editor (you can just drag the file)
 this is usefull to modify an addon directly in the text editor
