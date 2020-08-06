@@ -7,6 +7,13 @@ import addon_utils
 from collections import Counter
 from zipfile import ZipFile
 
+'''
+if no bl_info running like a script
+
+
+
+
+'''
 bl_info = {
     "name": "Addon Installer|Script Runner",
     "description": "install save reload addons or run scripts just selecting a file",
@@ -33,104 +40,178 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
         subtype='FILE_PATH'  # to be sure to select a file
     )
 
+    clean_doubles_update_versions: bpy.props.BoolProperty(default=True)
+
     files: bpy.props.CollectionProperty(type=bpy.types.PropertyGroup)
     # https://blender.stackexchange.com/questions/30678/bpy-file-browser-get-selected-file-names
 
     def execute(self, context):
+        
+        print('*'*200)
+        print('')
+        print('ADDON INSTALLER|SCRIPT RUNNER')
+        print('')     
 
-        print('#'*50)
-        print('ADDON/SCRIPT INSTALLER')
-        print('#'*50)
-
-        p = self.filepath
         dirname = os.path.dirname(self.filepath)
-        name = Path(p).stem
+        names = []
 
-        # check if bl_info (Script or not)
-        Script = True
-        if Path(p).suffix == '.py' or Path(p).suffix == '.txt': 	 # == and not is!
-            with open(p, 'r', encoding="utf-8") as f:
-                body = f.readlines()
-                for line in body:
-                    if line.startswith("bl_info"):
-                        Script = False
-                        break
+        for f in self.files:
 
-        if Path(p).suffix == '.zip':
-            Script = False
+            p = os.path.join(dirname, f.name)
+            name = Path(p).stem
+            names.append(name)
+            
+            # check if bl_info (Script or not)
+            Script = True
+            if Path(p).suffix == '.py' or Path(p).suffix == '.txt': 	 # == and not is!
+                with open(p, 'r', encoding="utf-8") as f:
+                    body = f.readlines()
+                    for line in body:
+                        if line.startswith("bl_info"):
+                            Script = False
+                            break
 
-        if Script:
-            exec(compile(open(p).read(), p, 'exec'))  # run script
-            self.report({'INFO'}, "RUN SCRIPT: " + name)
-            return {'FINISHED'}
+            if Path(p).suffix == '.zip':
+                Script = False
 
-        else:
-            names = []
-            for f in self.files:
-                p = os.path.join(dirname, f.name)
-                name = Path(p).stem
-                names.append(name)
+            if Script:
+                if len(self.files) > 1:
+                    print('_'*100)
+                    print('')
+                    print('"'+ name +'" NOT INSTALLED! (no bl-info)' )
+                    print('_'*100)
+                    print('')                
+                    self.report({'ERROR'}, "BL_INFO MISSING, "+ name +" IS NOT AN ADDON")
+                    continue
+                    
+                print('_'*100)
+                print('')
+                print('SCRIPT EXECUTION' + name)
+                print('_'*100)
+                print('')
+                exec(compile(open(p).read(), p, 'exec'))  # run script
+                self.report({'INFO'}, "RUN SCRIPT: " + name)
+                return {'FINISHED'}
+            
+            print('_'*100)
+            print('')
+            print('ADDON(S) INSTALLATION/RELOAD ' + name)
+            print('_'*100)
+            print('')
 
-                try:
-                    bpy.ops.preferences.addon_disable(module=name)
+            try:
+                bpy.ops.preferences.addon_disable(module=name)
 
-                except RuntimeError:
-                    print(
-                        '###################################################couldn\'t addon_disable')
-                    self.report(
-                        {'ERROR'}, "CAN'T DISABLE ADDON, see in the console")
-                    return {'CANCELLED'}
+            except RuntimeError:
+                print(
+                    '#################couldn\'t addon_disable '+ name)
+                self.report(
+                    {'ERROR'}, "CAN'T DISABLE ADDON, see in the console")
+                return {'CANCELLED'}
 
-                # remove/install
-                try:
-                    bpy.ops.preferences.addon_remove(module=name)
+            # remove/install
+            try:
+                bpy.ops.preferences.addon_remove(module=name)
 
-                except RuntimeError:
-                    print(
-                        '###################################################couldn\'t addon_remove')
-                    self.report(
-                        {'ERROR'}, "CAN'T REMOVE ADDON, see in the console")
-                    return {'CANCELLED'}
+            except RuntimeError:
+                print(
+                    '#################couldn\'t addon_remove ' +name)
+                self.report(
+                    {'ERROR'}, "CAN'T REMOVE ADDON, see in the console")
+                return {'CANCELLED'}
 
-                try:
-                    bpy.ops.preferences.addon_install(filepath=p)
+            try:
+                bpy.ops.preferences.addon_install(filepath=p)
 
-                except RuntimeError:
-                    print(
-                        '###################################################couldn\'t addon_install')
-                    self.report(
-                        {'ERROR'}, "CAN'T INSTALL ADDON, see in the console")
-                    return {'CANCELLED'}
+            except RuntimeError:
+                print(
+                    '#################couldn\'t addon_install ' +name)
+                self.report(
+                    {'ERROR'}, "CAN'T INSTALL ADDON, see in the console")
+                return {'CANCELLED'}
 
-                # enable
-                try:
-                    if Path(p).suffix == '.zip':
-                        
-                        # changing the name of a zip, the name of the first subfolder is different. when doing enable, name is the name of the subfolder...
-                        with ZipFile(p, 'r') as f:
-                            names = [info.filename for info in f.infolist()
-                                     if info.is_dir()]
-              
-                        namezip = names[0].split("/")[0]
+            # enable
+            try:
+                if Path(p).suffix == '.zip':
+                    
+                    # changing the name of a zip, the name of the first subfolder is different. when doing enable, name is the name of the subfolder...
+                    with ZipFile(p, 'r') as f:
+                        names = [info.filename for info in f.infolist()
+                                 if info.is_dir()]
+          
+                    namezip = names[0].split("/")[0]
 
-                        bpy.ops.preferences.addon_enable(module=namezip)
-                    else:
-                        bpy.ops.preferences.addon_enable(module=name)
+                    bpy.ops.preferences.addon_enable(module=namezip)
+                else:
+                    bpy.ops.preferences.addon_enable(module=name)
 
-                except RuntimeError:
-                    print(
-                        '###################################################couldn\'t addon_enable')
-                    self.report(
-                        {'ERROR'}, "CAN'T ENABLE ADDON, see in the console")
-                    return {'CANCELLED'}
+            except RuntimeError:
+                print(
+                    '#################couldn\'t addon_enable ' +name)
+                self.report(
+                    {'ERROR'}, "CAN'T ENABLE ADDON, see in the console")
+                return {'CANCELLED'}
 
-                if len(self.files) < 2:
-                    self.report({'INFO'}, "INSTALLED/RELOADED: " + name)
+            if len(self.files) < 2:
+                self.report({'INFO'}, "INSTALLED/RELOADED: " + name)
 
-            if len(self.files) > 1:
-                self.report({'INFO'}, "MULTI INSTALLED/RELOADED ")
+        if len(self.files) > 1:
+            self.report({'INFO'}, "MULTI INSTALLED/RELOADED ")
 
-            return {'FINISHED'}
+        # search dupplicates addon and old versions in all addons to keep only last update
+        if self.clean_doubles_update_versions:
+            my_list = [(addon.bl_info['category'], addon.bl_info['name'], addon.bl_info['version'], addon.__name__)
+                       for addon in addon_utils.modules()]  # tuple with 4 values
+
+            dict = Counter(word for i, j, k, l in my_list for word in [
+                           (i, j)])  # to check "category: name" occurences
+
+            counter = [(word, count) for word,
+                       count in dict.most_common() if count > 1]  # dupplicates
+                       
+            #e.g:[['Development', ' A', (1, 8, 1), 'Afghf'], ['Development', ' A', (1, 8, 3), 'A1'], ['Development', ' A', (1, 8, 2), 'A2121'],['Development', ' A', (1, 8, 3), 'A4541']] 
+            
+            #let's put the greatest version apart 
+            version = []
+            greatest = []
+            greater = None
+            for u, v in counter:
+                greater = None
+                for i, j, k, l in my_list:
+                    if (i, j) == u:
+                        version.append([i, j, k, l])
+                        if not greater:
+                            greater = k
+                            greatest.append([i, j, k, l])                               
+                        elif k > greater:
+                            if greatest:
+                                greatest.pop()
+                                greatest.append([i, j, k, l])
+                            else:
+                                greatest.append([i, j, k, l])                           
+            
+            for g in greatest:
+                if g in version:
+                    version.remove(g)
+
+            # for addon in addon_utils.modules():
+            for u, v, w, z in my_list:
+                for i, j, k, l in version:
+                    # if (addon.bl_info['category'], addon.bl_info['name'], addon.bl_info['version']) == (i, j, k):
+                    if (u, v, w) == (i, j, k):
+                        bpy.ops.preferences.addon_remove(module=l)
+
+
+            print('')
+            print(
+                f'NOT INSTALLED VERSIONS (category|name|version|file_name): {version}')
+            print('')
+            print(
+                f'INSTALLED (category|name|version|file_name): {greatest}')
+            print('')
+
+
+        return {'FINISHED'}
 
 
 def draw(self, context):
@@ -155,7 +236,7 @@ class INSTALLER_OT_TextEditor(bpy.types.Operator):
         text = bpy.context.space_data.text
         addon = False
         for line in text.lines:
-            if 'bl_info' in line.body and not line.body.startswith("#"):
+            if line.body.startswith("bl_info"):
                 addon = True
         if addon is False:
             self.report({'ERROR'}, "BL_INFO MISSING, NOT AN ADDON")
