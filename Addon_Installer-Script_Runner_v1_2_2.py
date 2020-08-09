@@ -7,13 +7,6 @@ import addon_utils
 from collections import Counter
 from zipfile import ZipFile
 
-'''
-if no bl_info running like a script
-
-
-
-
-'''
 bl_info = {
     "name": "Addon Installer|Script Runner",
     "description": "install save reload addons or run scripts just selecting a file",
@@ -23,7 +16,7 @@ bl_info = {
     "blender": (2, 83, 0),
     "location": "Global/Text Editor",
     "warning": "",
-    "wiki_url": "https://github.com/1C0D/Addon-Installer_Script-Runner_BlenderAddon/blob/master/Addon_Installer-Script_Runner.py",
+    "doc_url": "https://github.com/1C0D/Addon-Installer_Script-Runner_BlenderAddon/blob/master/Addon_Installer-Script_Runner.py",
     "category": "Development",
 }
 
@@ -46,11 +39,11 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
     # https://blender.stackexchange.com/questions/30678/bpy-file-browser-get-selected-file-names
 
     def execute(self, context):
-        
+
         print('*'*200)
         print('')
         print('ADDON INSTALLER|SCRIPT RUNNER')
-        print('')     
+        print('')
 
         dirname = os.path.dirname(self.filepath)
         names = []
@@ -60,7 +53,7 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
             p = os.path.join(dirname, f.name)
             name = Path(p).stem
             names.append(name)
-            
+
             # check if bl_info (Script or not)
             Script = True
             if Path(p).suffix == '.py' or Path(p).suffix == '.txt': 	 # == and not is!
@@ -78,12 +71,13 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
                 if len(self.files) > 1:
                     print('_'*100)
                     print('')
-                    print('"'+ name +'" NOT INSTALLED! (no bl-info)' )
+                    print('"' + name + '" NOT INSTALLED! (no bl-info)')
                     print('_'*100)
-                    print('')                
-                    self.report({'ERROR'}, "BL_INFO MISSING, "+ name +" IS NOT AN ADDON")
+                    print('')
+                    self.report({'ERROR'}, "BL_INFO MISSING, " +
+                                name + " IS NOT AN ADDON")
                     continue
-                    
+
                 print('_'*100)
                 print('')
                 print('SCRIPT EXECUTION' + name)
@@ -92,7 +86,7 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
                 exec(compile(open(p).read(), p, 'exec'))  # run script
                 self.report({'INFO'}, "RUN SCRIPT: " + name)
                 return {'FINISHED'}
-            
+
             print('_'*100)
             print('')
             print('ADDON(S) INSTALLATION/RELOAD ' + name)
@@ -104,7 +98,7 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
 
             except RuntimeError:
                 print(
-                    '#################couldn\'t addon_disable '+ name)
+                    '#################couldn\'t addon_disable ' + name)
                 self.report(
                     {'ERROR'}, "CAN'T DISABLE ADDON, see in the console")
                 return {'CANCELLED'}
@@ -115,7 +109,7 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
 
             except RuntimeError:
                 print(
-                    '#################couldn\'t addon_remove ' +name)
+                    '#################couldn\'t addon_remove ' + name)
                 self.report(
                     {'ERROR'}, "CAN'T REMOVE ADDON, see in the console")
                 return {'CANCELLED'}
@@ -125,7 +119,7 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
 
             except RuntimeError:
                 print(
-                    '#################couldn\'t addon_install ' +name)
+                    '#################couldn\'t addon_install ' + name)
                 self.report(
                     {'ERROR'}, "CAN'T INSTALL ADDON, see in the console")
                 return {'CANCELLED'}
@@ -133,12 +127,12 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
             # enable
             try:
                 if Path(p).suffix == '.zip':
-                    
+
                     # changing the name of a zip, the name of the first subfolder is different. when doing enable, name is the name of the subfolder...
                     with ZipFile(p, 'r') as f:
                         names = [info.filename for info in f.infolist()
                                  if info.is_dir()]
-          
+
                     namezip = names[0].split("/")[0]
 
                     bpy.ops.preferences.addon_enable(module=namezip)
@@ -147,7 +141,7 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
 
             except RuntimeError:
                 print(
-                    '#################couldn\'t addon_enable ' +name)
+                    '#################couldn\'t addon_enable ' + name)
                 self.report(
                     {'ERROR'}, "CAN'T ENABLE ADDON, see in the console")
                 return {'CANCELLED'}
@@ -168,10 +162,10 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
 
             counter = [(word, count) for word,
                        count in dict.most_common() if count > 1]  # dupplicates
-                       
-            #e.g:[['Development', ' A', (1, 8, 1), 'Afghf'], ['Development', ' A', (1, 8, 3), 'A1'], ['Development', ' A', (1, 8, 2), 'A2121'],['Development', ' A', (1, 8, 3), 'A4541']] 
-            
-            #let's put the greatest version apart 
+
+            #e.g:[['Development', ' A', (1, 8, 1), 'Afghf'], ['Development', ' A', (1, 8, 3), 'A1'], ['Development', ' A', (1, 8, 2), 'A2121'],['Development', ' A', (1, 8, 3), 'A4541']]
+
+            # let's put the greatest version apart
             version = []
             greatest = []
             greater = None
@@ -182,14 +176,14 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
                         version.append([i, j, k, l])
                         if not greater:
                             greater = k
-                            greatest.append([i, j, k, l])                               
+                            greatest.append([i, j, k, l])
                         elif k > greater:
                             if greatest:
                                 greatest.pop()
                                 greatest.append([i, j, k, l])
                             else:
-                                greatest.append([i, j, k, l])                           
-            
+                                greatest.append([i, j, k, l])
+
             for g in greatest:
                 if g in version:
                     version.remove(g)
@@ -201,7 +195,6 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
                     if (u, v, w) == (i, j, k):
                         bpy.ops.preferences.addon_remove(module=l)
 
-
             print('')
             print(
                 f'NOT INSTALLED VERSIONS (category|name|version|file_name): {version}')
@@ -209,7 +202,6 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
             print(
                 f'INSTALLED (category|name|version|file_name): {greatest}')
             print('')
-
 
         return {'FINISHED'}
 
@@ -220,7 +212,7 @@ def draw(self, context):
     layout.separator(factor=1.0)
     layout.operator("installer.file_broswer",
                     text="Install-Reload Addon | Run ext Script", icon='FILEBROWSER')
-                    
+
 
 # ----------------------------- INSTALLER FROM TEXT EDITOR
 
@@ -312,8 +304,8 @@ def register():
     bpy.types.TEXT_MT_text.append(text_addon_refresh)
 
     # key
-    wm = bpy.context.window_manager                   
-    kc = wm.keyconfigs.addon    
+    wm = bpy.context.window_manager
+    kc = wm.keyconfigs.addon
     km = kc.keymaps.new(name='Text', space_type='TEXT_EDITOR')
     kmi = km.keymap_items.new("wm.call_menu", "Q", "PRESS", ctrl=True)
     kmi.properties.name = "SCREEN_MT_user_menu"
