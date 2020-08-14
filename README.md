@@ -1,16 +1,18 @@
 # Addon Installer|Script Runner  (BlenderAddon)
 ## to install/reload addons (even several at once) | run scripts from any blender area or from an external IDE and install/reload addons paste in the blender Text Editor 
 
-
+------------------------------------------------------------------
 * Install/reload addon *.py or *.zip | Run script from File (using a browser) 
-so you can edit an addon or a script with an external text editor, save it, and run the function
-
-* multi files selection supported and so multi Install/reload 
-ideal to install/reinstall a list of addon and updated one... (*.py or *.zip)
-
+* multi files selection supported
+* mode to automatically update to last version
+* prevents dupplicates
+* prevents fake modules
+-------------------------------------------------------------------
 * Install/reload addon from Text editor (you can just drag the file)
-this is usefull to modify an addon directly in the text editor
-you can create an addon from scratch too in the text editor too it will use the name there 
+-------------------------------------------------------------------
+* run script from file
+--------------------------------------------------------------------
+* 2 operators to clean fake modules and clean lower versions in addons
 
 video https://youtu.be/da6evGB-mGw   
 multi install https://youtu.be/zNWpQsHvhps   
