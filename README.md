@@ -14,6 +14,7 @@
 --------------------------------------------------------------------
 * 2 operators to clean fake modules and clean lower versions in addons
 
+last video https://youtu.be/QrNr4U17v3w
 video https://youtu.be/da6evGB-mGw   
 multi install https://youtu.be/zNWpQsHvhps   
 
