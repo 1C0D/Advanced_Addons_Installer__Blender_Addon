@@ -659,9 +659,8 @@ def register():
         bpy.utils.register_class(c)
 
     # menus entries
-    bpy.types.TEXT_MT_text.append(draw)
-    bpy.types.TEXT_MT_text.append(draw1)
 
+    bpy.types.TEXT_MT_text.append(draw1)
     bpy.types.TOPBAR_MT_app.append(draw)
 
     # key
@@ -684,9 +683,7 @@ def unregister():
     addon_keymaps.clear()
 
     # menus entries
-    bpy.types.TEXT_MT_text.remove(draw)
     bpy.types.TEXT_MT_text.remove(draw1)
-
     bpy.types.TOPBAR_MT_app.remove(draw)
 
     # classes
