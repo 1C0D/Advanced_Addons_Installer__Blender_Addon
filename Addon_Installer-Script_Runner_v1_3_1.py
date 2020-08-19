@@ -1,6 +1,5 @@
 from bpy_extras.io_utils import ImportHelper
 from pathlib import Path
-import time
 import bpy
 import sys
 import os
@@ -15,7 +14,7 @@ bl_info = {
     "description": "install save reload addons or run scripts just selecting a file",
     "author": "1C0D and from Amaral Krichman's addon",
     # multi selection file added for multi addons installation
-    "version": (1, 3, 0),
+    "version": (1, 3, 1),
     "blender": (2, 83, 0),
     "location": "top bar (blender icon)/Text Editor> text menu",
     "warning": "",
@@ -172,8 +171,7 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
                                 body_info = body
                                 break
 
-            # ADDON(S) INSTALLATION/RELOAD___________________________________________________________
-
+            # ADDON(S) INSTALLATION/RELOAD
             if body_info:  # ADDONS
                 try:
                     mod = ModuleType(name)
@@ -223,7 +221,7 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
                     raise
                     return {'CANCELLED'}
 
-# _________________________________________________________________________________________________________________________
+
         # not in the precedent loop to not repeat same operations for each file
         greatest = []
         lower_versions = []
@@ -321,7 +319,7 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
 
                 self.report({'INFO'}, f'RUN SCRIPT: "{name}"')
 
-# ------------------------------------------------------------------------------------------------------------------
+
         for great in greatest:
             name1 = great[3]
             version = great[3]
@@ -333,7 +331,7 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
             print('_'*100)
             print('')
 
-            # disable_________________________________________________
+            # disable
             try:
                 bpy.ops.preferences.addon_disable(module=name1)
 
@@ -343,7 +341,7 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
                 raise
                 return {'CANCELLED'}
 
-            # remove/install__________________________________________
+            # remove/install
             try:
                 bpy.ops.preferences.addon_remove(module=name1)
 
@@ -362,7 +360,7 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
                 raise
                 return {'CANCELLED'}
 
-            # enable___________________________________________________
+            # enable
             try:
                 if Path(p).suffix == '.zip':
 
@@ -408,14 +406,24 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
                 self.report({'INFO'}, "INSTALLED/RELOADED: " + name1)
 
         return {'FINISHED'}
+        
+        
+    def draw(self, context):
 
-
-def draw(self, context):
-
-    layout = self.layout
-    layout.separator(factor=1.0)
-    layout.operator("installer.file_broswer",
-                    text="Install-Reload Addon | Run ext Script", icon='FILEBROWSER')
+        layout = self.layout
+        layout.label(text="Select addon(s) and confirm")
+        text="Update version(s) or Reload" if self.update_versions else "Any version or Reload"              
+        layout.prop(self, "update_versions",text=text)  
+        layout.label(text="")
+        layout.label(text='Tips:')
+        layout.label(text='  -select a SCRIPT to RUN it')
+        layout.label(text='  -you can double click on 1 file')
+        layout.label(text='  -quick favorite in text editor |Ctrl+Q|')
+        layout.label(text='')
+        layout.label(text='')
+        layout.label(text='')
+        layout.label(text='')
+        layout.label(text='            Special thanks to Amaral Krichman')
 
 
 # ----------------------------- INSTALL/RELOAD FROM TEXT EDITOR
@@ -490,15 +498,7 @@ class INSTALLER_OT_TextEditor(bpy.types.Operator):
         return {'FINISHED'}
 
 
-def draw1(self, context):
-
-    self .layout.separator(factor=1.0)
-    self.layout.operator("installer.text_editor",
-                         text="Install-Reload Addon from Text Editor", icon='COLLAPSEMENU')
-
-
 # -----------------------------ADDONS CLEANER
-
 
 class ADDON_OT_Cleaner(bpy.types.Operator):
     bl_idname = "addon.cleaner"
@@ -618,20 +618,39 @@ class ADDON_OT_fake_remove(bpy.types.Operator):
             {'INFO'}, f'{len(names)} FAKES MODULE REMOVED, see names in console')
 
         return {'FINISHED'}
+        
 
+#----------------------------------------Menus
 
-def draw2(self, context):
+class ADDON_MT_management_menu(bpy.types.Menu):
+    bl_label = 'addon management'    
+    def draw(self, context):  
+        layout = self.layout
+        layout.operator("installer.file_broswer",
+        text="Install-Reload Addon | Run ext Script", icon='FILEBROWSER')    
+        layout.operator(ADDON_OT_Cleaner.bl_idname, text="Clean all addons lower versions")
+        layout.operator(ADDON_OT_fake_remove.bl_idname, text="Remove fake modules")
+
+def draw(self, context):
+
     layout = self.layout
-    layout.operator(ADDON_OT_Cleaner.bl_idname,
-                    text="Clean all addons lower versions")
-    layout.operator(ADDON_OT_fake_remove.bl_idname, text="Remove fake modules")
+    layout.separator(factor=1.0)
+    layout.menu('ADDON_MT_management_menu', text='Add-ons management')
+    
+
+def draw1(self, context):
+
+    self .layout.separator(factor=1.0)
+    self.layout.operator("installer.file_broswer",
+        text="Install-Reload Addon | Run ext Script", icon='FILEBROWSER')    
+    self.layout.operator("installer.text_editor",
+                         text="Install-Reload Addon from Text Editor", icon='COLLAPSEMENU')                      
 
 
 classes = (INSTALLER_OT_FileBrowser, INSTALLER_OT_TextEditor,
-           ADDON_OT_Cleaner, ADDON_OT_fake_remove)
+           ADDON_OT_Cleaner, ADDON_OT_fake_remove, ADDON_MT_management_menu)           
 
 addon_keymaps = []
-
 
 def register():
 
@@ -642,10 +661,8 @@ def register():
     # menus entries
     bpy.types.TEXT_MT_text.append(draw)
     bpy.types.TEXT_MT_text.append(draw1)
-    bpy.types.TEXT_MT_text.append(draw2)
 
     bpy.types.TOPBAR_MT_app.append(draw)
-    bpy.types.TOPBAR_MT_app.append(draw2)
 
     # key
     wm = bpy.context.window_manager
@@ -654,7 +671,6 @@ def register():
     kmi = km.keymap_items.new("wm.call_menu", "Q", "PRESS", ctrl=True)
     kmi.properties.name = "SCREEN_MT_user_menu"
     addon_keymaps.append((km, kmi))
-
 
 def unregister():
 
@@ -670,10 +686,8 @@ def unregister():
     # menus entries
     bpy.types.TEXT_MT_text.remove(draw)
     bpy.types.TEXT_MT_text.remove(draw1)
-    bpy.types.TEXT_MT_text.remove(draw2)
 
     bpy.types.TOPBAR_MT_app.remove(draw)
-    bpy.types.TOPBAR_MT_app.remove(draw2)
 
     # classes
     for c in classes:
