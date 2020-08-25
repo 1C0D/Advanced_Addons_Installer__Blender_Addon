@@ -5,6 +5,7 @@ import sys
 import os
 import io
 import addon_utils
+from time import ctime
 from collections import Counter
 from zipfile import ZipFile
 
@@ -221,7 +222,6 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
                     raise
                     return {'CANCELLED'}
 
-
         # not in the precedent loop to not repeat same operations for each file
         greatest = []
         lower_versions = []
@@ -319,7 +319,6 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
 
                 self.report({'INFO'}, f'RUN SCRIPT: "{name}"')
 
-
         for great in greatest:
             name1 = great[3]
             version = great[3]
@@ -406,14 +405,13 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
                 self.report({'INFO'}, "INSTALLED/RELOADED: " + name1)
 
         return {'FINISHED'}
-        
-        
+
     def draw(self, context):
 
         layout = self.layout
         layout.label(text="Select addon(s) and confirm")
-        text="Update version(s) or Reload" if self.update_versions else "Any version or Reload"              
-        layout.prop(self, "update_versions",text=text)  
+        text = "Update version(s) or Reload" if self.update_versions else "Any version or Reload"
+        layout.prop(self, "update_versions", text=text)
         layout.label(text="")
         layout.label(text='Tips:')
         layout.label(text='  -select a SCRIPT to RUN it')
@@ -618,39 +616,75 @@ class ADDON_OT_fake_remove(bpy.types.Operator):
             {'INFO'}, f'{len(names)} FAKES MODULE REMOVED, see names in console')
 
         return {'FINISHED'}
-        
 
-#----------------------------------------Menus
+
+class ADDON_OT_last_installed(bpy.types.Operator):
+    bl_idname = "addon.print_last_installed"
+    bl_label = "last installed addon (see in console)"
+
+    def execute(self, context):
+
+        print("#"*20, "sorted last installed addons")
+
+        installed = []
+        for mod_name in bpy.context.preferences.addons.keys():
+            mod = sys.modules[mod_name]
+            try:
+                installed.append(
+                    (mod.__name__, mod.bl_info['category'], mod.bl_info['name'], mod.bl_info['version'], mod.__time__))
+            except KeyError:
+                pass
+        last_installed = sorted(installed, key=lambda x: (x[4]))
+
+        last_installed_date = [(i, j, k, l, ctime(m))
+                               for i, j, k, l, m in last_installed]
+
+        for last in last_installed_date:
+            print(last)
+        print("")
+        print("File name | category | name | version | date")
+
+        return {'FINISHED'}
+
+
+# ----------------------------------------Menus
 
 class ADDON_MT_management_menu(bpy.types.Menu):
-    bl_label = 'addon management'    
-    def draw(self, context):  
+    bl_label = 'addon management'
+
+    def draw(self, context):
         layout = self.layout
         layout.operator("installer.file_broswer",
-        text="Install-Reload Addon | Run ext Script", icon='FILEBROWSER')    
-        layout.operator(ADDON_OT_Cleaner.bl_idname, text="Clean all addons lower versions")
-        layout.operator(ADDON_OT_fake_remove.bl_idname, text="Remove fake modules")
+                        text="Install-Reload Addon | Run ext Script", icon='FILEBROWSER')
+        layout.operator(ADDON_OT_Cleaner.bl_idname,
+                        text="Clean all addons lower versions")
+        layout.operator(ADDON_OT_fake_remove.bl_idname,
+                        text="Remove fake modules")
+        layout.operator(ADDON_OT_last_installed.bl_idname,
+                        text="Remove fake modules")
+
 
 def draw(self, context):
 
     layout = self.layout
     layout.separator(factor=1.0)
     layout.menu('ADDON_MT_management_menu', text='Add-ons management')
-    
+
 
 def draw1(self, context):
 
     self .layout.separator(factor=1.0)
     self.layout.operator("installer.file_broswer",
-        text="Install-Reload Addon | Run ext Script", icon='FILEBROWSER')    
+                         text="Install-Reload Addon | Run ext Script", icon='FILEBROWSER')
     self.layout.operator("installer.text_editor",
-                         text="Install-Reload Addon from Text Editor", icon='COLLAPSEMENU')                      
+                         text="Install-Reload Addon from Text Editor", icon='COLLAPSEMENU')
 
 
 classes = (INSTALLER_OT_FileBrowser, INSTALLER_OT_TextEditor,
-           ADDON_OT_Cleaner, ADDON_OT_fake_remove, ADDON_MT_management_menu)           
+           ADDON_OT_Cleaner, ADDON_OT_fake_remove, ADDON_MT_management_menu, ADDON_OT_last_installed)
 
 addon_keymaps = []
+
 
 def register():
 
@@ -670,6 +704,7 @@ def register():
     kmi = km.keymap_items.new("wm.call_menu", "Q", "PRESS", ctrl=True)
     kmi.properties.name = "SCREEN_MT_user_menu"
     addon_keymaps.append((km, kmi))
+
 
 def unregister():
 
