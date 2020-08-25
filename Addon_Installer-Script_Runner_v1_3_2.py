@@ -13,7 +13,7 @@ from zipfile import ZipFile
 bl_info = {
     "name": "Addon Installer|Script Runner",
     "description": "install save reload addons or run scripts just selecting a file",
-    "author": "1C0D (inspired by Amaral Krichman)",
+    "author": "1C0D (inspired by Amaral Krichman's addon)",
     # multi selection file added for multi addons installation
     "version": (1, 3, 2),
     "blender": (2, 83, 0),
