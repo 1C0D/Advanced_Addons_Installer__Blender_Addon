@@ -15,7 +15,7 @@ bl_info = {
     "description": "install save reload addons or run scripts just selecting a file",
     "author": "1C0D and from Amaral Krichman's addon",
     # multi selection file added for multi addons installation
-    "version": (1, 3, 1),
+    "version": (1, 3, 2),
     "blender": (2, 83, 0),
     "location": "top bar (blender icon)/Text Editor> text menu",
     "warning": "",
@@ -620,7 +620,7 @@ class ADDON_OT_fake_remove(bpy.types.Operator):
 
 class ADDON_OT_last_installed(bpy.types.Operator):
     bl_idname = "addon.print_last_installed"
-    bl_label = "last installed addon (see in console)"
+    bl_label = "Last installed addons (see in console)"
 
     def execute(self, context):
 
@@ -660,8 +660,7 @@ class ADDON_MT_management_menu(bpy.types.Menu):
                         text="Clean all addons lower versions")
         layout.operator(ADDON_OT_fake_remove.bl_idname,
                         text="Remove fake modules")
-        layout.operator(ADDON_OT_last_installed.bl_idname,
-                        text="Remove fake modules")
+        layout.operator(ADDON_OT_last_installed.bl_idname)
 
 
 def draw(self, context):
