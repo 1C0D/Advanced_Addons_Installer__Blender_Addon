@@ -627,9 +627,10 @@ class ADDON_OT_last_installed(bpy.types.Operator):
         print("#"*20, "sorted last installed addons")
 
         installed = []
+
         for mod_name in bpy.context.preferences.addons.keys():
-            mod = sys.modules[mod_name]
             try:
+                mod = sys.modules[mod_name]
                 installed.append(
                     (mod.__name__, mod.bl_info['category'], mod.bl_info['name'], mod.bl_info['version'], mod.__time__))
             except KeyError:
