@@ -62,6 +62,8 @@ N.B you can check messages in the console after installation...
 
 -you can install/reload an addon opened in the text editor too
 
+-last installed addon: print a list in console of installed addons sorted by date 
+
 
 '''
 
