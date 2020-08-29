@@ -15,7 +15,7 @@ bl_info = {
     "description": "install save reload addons or run scripts just selecting a file",
     "author": "1C0D (inspired by Amaral Krichman's addon)",
     # multi selection file added for multi addons installation
-    "version": (1, 3, 2),
+    "version": (1, 3, 3),
     "blender": (2, 83, 0),
     "location": "top bar (blender icon)/Text Editor> text menu",
     "warning": "",
@@ -80,7 +80,6 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
         subtype='FILE_PATH'  # to be sure to select a file
     )
 
-    # name="Update versions" if self.update_versions else "Update versions\n(doesn't support mulifiles selection)"
     update_versions: bpy.props.BoolProperty(
         default=True, name="Update versions")
 
@@ -95,7 +94,7 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
         print('')
         print('*'*150)
 
-        dirname = os.path.dirname(self.filepath)
+
         names = []
         addon_list = []
         script = False
@@ -103,7 +102,7 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
 
         for f in self.files:
 
-            p = os.path.join(dirname, f.name)
+            p = self.filepath
 
             name = Path(p).stem
             names.append(name)
@@ -123,34 +122,38 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
                         try:
                             f = io.TextIOWrapper(
                                 zf.open(fic), encoding="utf-8")
-                        except OSError as ex:  # not sure about this
+                        except OSError as ex:
                             print(f'===> Error opening file: {p}, {ex}')
                             continue
                 del zf
+            try:
+                with f:
+                    lines = []
+                    line_iter = iter(f)
+                    l = ""
+                    while not l.startswith("bl_info"):
+                        try:
+                            l = line_iter.readline()
+                        except UnicodeDecodeError as ex:
+                            print(f'===> Error reading file as UTF-8: {p}, {ex}')
+                            continue
 
-            with f:
-                lines = []
-                line_iter = iter(f)
-                l = ""
-                while not l.startswith("bl_info"):
-                    try:
-                        l = line_iter.readline()
-                    except UnicodeDecodeError as ex:
-                        print(f'===> Error reading file as UTF-8: {p}, {ex}')
-                        continue
+                        if len(l) == 0:
+                            break
 
-                    if len(l) == 0:
-                        break
+                    while l.rstrip():
+                        lines.append(l)
+                        try:
+                            l = line_iter.readline()
+                        except UnicodeDecodeError as ex:
+                            print(f'===> Error reading file as UTF-8: {p}, {ex}')
+                            continue
 
-                while l.rstrip():
-                    lines.append(l)
-                    try:
-                        l = line_iter.readline()
-                    except UnicodeDecodeError as ex:
-                        print(f'===> Error reading file as UTF-8: {p}, {ex}')
-                        continue
+                    data = "".join(lines)
 
-                data = "".join(lines)
+            except AttributeError:
+                self.report({'WARNING'}, 'Select a File!')
+                return {'CANCELLED'}
 
             del f
 
@@ -183,8 +186,6 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
                     data_mod_version = (mod.bl_info['version'])
                     data_mod_category = (mod.bl_info['category'])
 
-                    # print('mod',mod)
-
                 except:
                     print(f'===> AST error parsing bl_info for: {name}')
                     import traceback
@@ -194,7 +195,7 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
 
                 addon_list.append(
                     [data_mod_category, data_mod_name, data_mod_version, name, p])
-                # print('addon_list',addon_list)
+
             else:
                 # SCRIPT EXECUTION
                 script = True
@@ -220,7 +221,6 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
 
                 except:
                     print(f'===> SCRIPT ERROR in "{name}"')
-                    self.report({'INFO'}, f'SCRIPT ERROR in {name}')
                     raise
                     return {'CANCELLED'}
 
@@ -240,7 +240,6 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
                        count in dict.most_common()]  # dupplicates
 
             # greatest / lower versions among selected (when multi install maybe several versions of a same addon...)
-
             greater = ()
             for u, v in counter:
                 greater = ()
@@ -268,8 +267,6 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
             for n in not_installed:
                 greatest.remove(n)
 
-            # print('greatest',greatest)
-
             # remove <= installed version
             to_remove = [addon for addon in addon_utils.modules() for g in greatest
                          if (addon.bl_info['category'] == g[0]
@@ -284,10 +281,9 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
                     print(f'===> "{removed.__name__}" REMOVED (LOWER VERSION)')
                 except:
                     print(f'===> couldn\'t remove "{removed.__name__}"')
-                    # self.report({'ERROR'}, f"COULDN'T REMOVE {name}")
-                    continue
+                    self.report({'ERROR'}, f"COULDN'T REMOVE {name}",  see in Console)
+                    return {'CANCELLED'}
 
-            # print('to_remove',to_remove)
             if not greatest and not script:
                 print('')
                 print(
@@ -338,8 +334,7 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
 
             except:
                 print('===> couldn\'t disable' + name1)
-                # self.report({'ERROR'}, f"COULDN'T DISABLE {name1}")
-                raise
+                self.report({'ERROR'}, f"COULDN'T DISABLE {name1}, see in Console")
                 return {'CANCELLED'}
 
             # remove/install
@@ -348,8 +343,7 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
 
             except:
                 print('===> couldn\'t remove' + name1)
-                # self.report({'ERROR'}, f"COULDN'T REMOVE {name1}")
-                raise
+                self.report({'ERROR'}, f"COULDN'T REMOVE {name1}, see in Console")
                 return {'CANCELLED'}
 
             try:
@@ -357,8 +351,7 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
 
             except:
                 print('===> couldn\'t install' + name1)
-                # self.report({'ERROR'}, f"COULDN'T INSTALL {name1}")
-                raise
+                self.report({'ERROR'}, f"COULDN'T INSTALL {name1}, see in Console")
                 return {'CANCELLED'}
 
             # enable
@@ -378,12 +371,10 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
 
             except:
                 print('===> couldn\'t addon_enable ' + name1)
-                # self.report({'ERROR'}, f"COULDN'T ENABLE {name1}")
-                raise
+                self.report({'ERROR'}, f"COULDN'T ENABLE {name1}, see in Console")
                 return {'CANCELLED'}
 
             lower_versions.extend(not_installed)
-            # print('lower_versions',lower_versions)
 
             print('')
             print(
@@ -474,8 +465,7 @@ class INSTALLER_OT_TextEditor(bpy.types.Operator):
 
         except:
             print('===> couldn\'t disable' + name)
-            # self.report({'ERROR'}, f"COULDN'T DISABLE {name}")
-            raise
+            self.report({'ERROR'}, f"COULDN'T DISABLE {name}, see in Console")
             return {'CANCELLED'}
 
         # refresh
@@ -489,8 +479,7 @@ class INSTALLER_OT_TextEditor(bpy.types.Operator):
 
         except:
             print('===> couldn\'t addon_enable ' + name)
-            # self.report({'ERROR'}, f"COULDN'T ENABLE {name}")
-            raise
+            self.report({'ERROR'}, f"COULDN'T ENABLE {name}, see in Console")
             return {'CANCELLED'}
 
         self.report({'INFO'}, "Installed/Reloaded: " + name)
