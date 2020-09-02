@@ -103,6 +103,11 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
         for f in self.files:
 
             p = self.filepath
+            
+            if not os.path.exists(p):
+                self.report({'ERROR'}, f'Wrong Path {p}')
+                print(f"===> you may have changed of directory after having selected a file from another directory\n your path was: {p}")
+                return {'CANCELLED'}            
 
             name = Path(p).stem
             names.append(name)
