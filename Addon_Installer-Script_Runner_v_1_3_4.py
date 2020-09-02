@@ -15,7 +15,7 @@ bl_info = {
     "description": "install save reload addons or run scripts just selecting a file",
     "author": "1C0D (inspired by Amaral Krichman's addon)",
     # multi selection file added for multi addons installation
-    "version": (1, 3, 3),
+    "version": (1, 3, 4),
     "blender": (2, 83, 0),
     "location": "top bar (blender icon)/Text Editor> text menu",
     "warning": "",
