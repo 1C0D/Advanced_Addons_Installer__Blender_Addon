@@ -15,7 +15,7 @@ bl_info = {
     "description": "install save reload addons or run scripts just selecting a file",
     "author": "1C0D (inspired by Amaral Krichman's addon)",
     # multi selection file added for multi addons installation
-    "version": (1, 3, 4),
+    "version": (1, 3, 5),
     "blender": (2, 83, 0),
     "location": "top bar (blender icon)/Text Editor> text menu",
     "warning": "",
@@ -103,14 +103,15 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
         for f in self.files:
 
             p = self.filepath
+
+            name = Path(p).stem
+            names.append(name)
+            
             
             if not os.path.exists(p):
                 self.report({'ERROR'}, f'Wrong Path {p}')
                 print(f"===> you may have changed of directory after having selected a file from another directory\n your path was: {p}")
-                return {'CANCELLED'}            
-
-            name = Path(p).stem
-            names.append(name)
+                return {'CANCELLED'}
 
             if Path(p).suffix == '.py':
                 try:
@@ -187,9 +188,9 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
                 try:
                     mod = ModuleType(name)
                     mod.bl_info = ast.literal_eval(body.value)
-                    data_mod_name = (mod.bl_info['name'])
-                    data_mod_version = (mod.bl_info['version'])
-                    data_mod_category = (mod.bl_info['category'])
+                    data_mod_name = mod.bl_info['name']
+                    data_mod_version = mod.bl_info.get('version',(0,0,0))
+                    data_mod_category = mod.bl_info['category']
 
                 except:
                     print(f'===> AST error parsing bl_info for: {name}')
