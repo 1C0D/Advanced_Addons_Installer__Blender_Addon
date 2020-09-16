@@ -15,7 +15,7 @@ bl_info = {
     "description": "install save reload addons or run scripts just selecting a file",
     "author": "1C0D (inspired by Amaral Krichman's addon)",
     # multi selection file added for multi addons installation
-    "version": (1, 3, 5),
+    "version": (1, 3, 6),
     "blender": (2, 83, 0),
     "location": "top bar (blender icon)/Text Editor> text menu",
     "warning": "",
@@ -502,7 +502,7 @@ class ADDON_OT_Cleaner(bpy.types.Operator):
     def execute(self, context):
 
         # search dupplicates addon and old versions in all addons to keep only last update
-        my_list = [(addon.bl_info['category'], addon.bl_info['name'], addon.bl_info['version'], addon.__name__)
+        my_list = [(addon.bl_info.get('category',("User")), addon.bl_info['name'], addon.bl_info.get('version',(0,0,0)), addon.__name__)
                    for addon in addon_utils.modules()]  # tuple with 4 values
 
         dict = Counter(word for i, j, k, l in my_list for word in [
