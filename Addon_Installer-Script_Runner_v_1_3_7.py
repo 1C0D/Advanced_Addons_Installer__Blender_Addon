@@ -3,9 +3,12 @@ from pathlib import Path
 import bpy
 import sys
 import os
+import subprocess
+import atexit
+import tempfile
 import io
 import addon_utils
-from time import ctime
+from time import ctime, sleep
 from collections import Counter
 from zipfile import ZipFile
 
@@ -15,7 +18,7 @@ bl_info = {
     "description": "install save reload addons or run scripts just selecting a file",
     "author": "1C0D (inspired by Amaral Krichman's addon)",
     # multi selection file added for multi addons installation
-    "version": (1, 3, 6),
+    "version": (1, 3, 7),
     "blender": (2, 83, 0),
     "location": "top bar (blender icon)/Text Editor> text menu",
     "warning": "",
@@ -643,6 +646,37 @@ class ADDON_OT_last_installed(bpy.types.Operator):
         print("File name | category | name | version | date")
 
         return {'FINISHED'}
+        
+        
+def launch():
+    """
+    launch the blender process
+    """    
+    binary_path = bpy.app.binary_path #blender.exe path 
+    file_path = bpy.data.filepath #saved .blend file
+    # check if the file is saved
+    if file_path: 
+        if bpy.data.is_dirty: #some changes since the last save
+            bpy.ops.wm.save_as_mainfile(filepath=file_path)
+            # launch a background process
+        subprocess.Popen([binary_path, file_path])
+    else: #if no save, save as temp
+        file_path=os.path.join(tempfile.gettempdir(),"temp.blend")
+        bpy.ops.wm.save_as_mainfile(filepath=file_path)
+        subprocess.Popen([binary_path, file_path])
+
+class RESTART_OT_blender(bpy.types.Operator):
+    bl_idname = "blender.restart"
+    bl_label = "Restart"
+
+    def execute(self, context):
+        #what is reloaded after the exit
+        atexit.register(launch)
+        # sleep for a sec
+        sleep(1)
+        # # quit blender
+        exit()
+        return {'FINISHED'}        
 
 
 # ----------------------------------------Menus
@@ -659,6 +693,8 @@ class ADDON_MT_management_menu(bpy.types.Menu):
         layout.operator(ADDON_OT_fake_remove.bl_idname,
                         text="Remove fake modules")
         layout.operator(ADDON_OT_last_installed.bl_idname)
+        layout.operator(RESTART_OT_blender.bl_idname,
+                        text="Restart Blender")
 
 
 def draw(self, context):
@@ -678,7 +714,7 @@ def draw1(self, context):
 
 
 classes = (INSTALLER_OT_FileBrowser, INSTALLER_OT_TextEditor,
-           ADDON_OT_Cleaner, ADDON_OT_fake_remove, ADDON_MT_management_menu, ADDON_OT_last_installed)
+           ADDON_OT_Cleaner, ADDON_OT_fake_remove, ADDON_MT_management_menu, ADDON_OT_last_installed, RESTART_OT_blender)
 
 addon_keymaps = []
 
