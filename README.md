@@ -7,7 +7,7 @@
 * mode to automatically update to last version
 * prevents dupplicates
 * prevents fake modules
-* restart blender with the same scene (saved in temp folder as temp.blend if not saved)
+* restart blender at the same state (as temp.blend if not saved)
 -------------------------------------------------------------------
 * Install/reload addon from Text editor (you can just drag the file)
 -------------------------------------------------------------------
