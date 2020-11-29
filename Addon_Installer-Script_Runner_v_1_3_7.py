@@ -18,7 +18,7 @@ bl_info = {
     "description": "install save reload addons or run scripts just selecting a file",
     "author": "1C0D (inspired by Amaral Krichman's addon)",
     # multi selection file added for multi addons installation
-    "version": (1, 3, 7),
+    "version": (1, 3, 8),
     "blender": (2, 83, 0),
     "location": "top bar (blender icon)/Text Editor> text menu",
     "warning": "",
@@ -97,16 +97,14 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
         print('')
         print('*'*150)
 
-
+        dirname = os.path.dirname(self.filepath)
         names = []
         addon_list = []
         script = False
         name = ''
 
         for f in self.files:
-
-            p = self.filepath
-
+            p = os.path.join(dirname, f.name)
             name = Path(p).stem
             names.append(name)
             
