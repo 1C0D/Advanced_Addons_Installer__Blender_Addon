@@ -15,7 +15,7 @@
 
 4-run scripts (single file .py)  
 
-4-location and options  
+5-location and options  
     -Blender icon menu:  
         ¤ install/reload addon  
         ¤ clean dupplicates and lower versions  
