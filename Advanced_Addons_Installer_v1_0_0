@@ -55,8 +55,6 @@ Browser to directly apply things on selection, when confirm
         ¤ install/reload addon
         ¤ install/reload from Text Editor
 
-####TO IMPROVE -run selected SCRIPT (no bl_info) #not working well####
-
 N.B you can check messages in the console
 
 '''
