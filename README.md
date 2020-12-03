@@ -1,23 +1,33 @@
-# Addon Installer|Script Runner  (BlenderAddon)
-## to install/reload addons (even several at once) | run scripts from any blender area or from an external IDE and install/reload addons paste in the blender Text Editor 
+# Advanced Addons Installer 
 
-------------------------------------------------------------------
-* Install/reload addon *.py or *.zip | Run script from File (using a browser) 
-* multi files selection supported
-* mode to automatically update to last version
-* prevents dupplicates
-* prevents fake modules
-* restart blender at the same state (as temp.blend if not saved)
--------------------------------------------------------------------
-* Install/reload addon from Text editor (you can just drag the file)
--------------------------------------------------------------------
-* run script from file
---------------------------------------------------------------------
-* 2 operators to clean fake modules and clean lower versions in addons
+## Browser to directly apply things on selection, when confirm
 
-last video https://youtu.be/QrNr4U17v3w
-video https://youtu.be/da6evGB-mGw   
-multi install https://youtu.be/zNWpQsHvhps   
+1-install/reload selected ADDON(S)
+    "Update" option (in browser):
+        ¤ on: install greater version number. reload if same
+        ¤ off: previous version allowed (actual version disabled)
+    avoids dupplicates (same content but different file name)
+    
+2-install folder as an addon
+    detecting  "__init__.py" inside
 
-N.B: this addon comes from my work and the use of the browser was inspired by Amaral Krichman's addon: addon-reloader  
-very interesting page https://blenderartists.org/t/essential-blender-text-editor-add-ons/1163857/109
+3-install/reload active file from TEXT EDITOR
+
+4-run scripts (single file .py)
+
+4-location and options
+    -Blender icon menu:
+        ¤ install/reload addon
+        ¤ clean dupplicates and lower versions
+        ¤ remove fake-modules
+        ¤ last installed addons (result in console)
+        ¤ restart blender (temp.blend if not saved)
+    -text editor:
+        ¤ creates a quick favorite 'Ctrl+Q'
+        ¤ install/reload addon
+        ¤ install/reload from Text Editor
+
+N.B you can check messages in the console
+
+last video https://youtu.be/5ksR991RwbM
+
