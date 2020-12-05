@@ -12,13 +12,12 @@ from time import ctime, sleep
 from collections import Counter
 from zipfile import ZipFile
 import shutil
-from sys import platform
 
 bl_info = {
     "name": "Advanced Addons Installer",
     "description": "install save reload addons or run scripts",
     "author": "1C0D",
-    "version": (1, 0, 0),
+    "version": (1, 0, 1),
     "blender": (2, 90, 0),
     "location": "top bar (blender icon)/Text Editor> text menu",
     "warning": "",
@@ -194,7 +193,6 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
         print('')
         print('*'*150)
 
-        dirname = os.path.dirname(self.filepath)
         names = []
         addon_list = []
         name = ''
@@ -214,7 +212,6 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
                 init, data)  # use ast to get bl_info[name]
             # ADDON FROM FOLDER
             if body_info:
-                # self.install_folder=True
                 try:
                     mod = ModuleType(dirbasename)
                     mod.bl_info = ast.literal_eval(body.value)
@@ -282,94 +279,94 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
 
 # ---------------------- addon installation from files/script running ----------------
 
-        for f in self.files:
+        else:
+            for f in self.files:
+                p = os.path.join(dirname, f.name)
+                name = Path(p).stem
+                names.append(name)
 
-            p = os.path.join(dirname, f.name)
-            name = Path(p).stem
-            names.append(name)
-
-            if not os.path.exists(p):
-                self.report({'ERROR'}, f'Wrong Path {p}')
-                print(f"===> invalid path: {p}")
-                return {'CANCELLED'}
-
-            if Path(p).suffix == '.py':  # open .py
-                try:
-                    f = open(p, "r", encoding='UTF-8')
-                except OSError as ex:
-                    print(f'===> Error opening file: {p}, {ex}')
-                    continue
-
-            elif Path(p).suffix == '.zip':  # open .zip
-                with ZipFile(p, 'r') as zf:
-                    init = [info.filename for info in zf.infolist(
-                    ) if info.filename.split("/")[1] == '__init__.py']
-                    for fic in init:
-                        try:
-                            f = io.TextIOWrapper(
-                                zf.open(fic), encoding="utf-8")
-                        except OSError as ex:
-                            print(f'===> Error opening file: {p}, {ex}')
-                            continue
-                del zf
-            try:
-                data = get_bl_info_dic(f, p)  # detect bl_info
-            except AttributeError:
-                self.report({'WARNING'}, 'Select a valid File!')
-                return {'CANCELLED'}
-
-            body_info, ModuleType, ast, body = use_ast(p, data)  # use ast
-
-            # ADDON(S) INSTALLATION/RELOAD
-            if body_info:  # ADDONS
-                try:
-                    mod = ModuleType(name)  # find bl_info parameters
-                    mod.bl_info = ast.literal_eval(body.value)
-                    data_mod_name = mod.bl_info['name']
-                    data_mod_version = mod.bl_info.get('version', (0, 0, 0))
-                    data_mod_category = mod.bl_info['category']
-
-                except:
-                    print(f'===> AST error parsing bl_info for: {name}')
-                    import traceback
-                    traceback.print_exc()
-                    raise
-                    continue
-
-                addon_list.append(
-                    [data_mod_category, data_mod_name, data_mod_version, name, p])  # do a list of parameters to sort them later
-
-            else:  # SCRIPT EXECUTION  register Not working well!
-                if len(self.files) > 1:
-                    self.report(
-                        {'ERROR'}, 'Not executed, Select only 1 SCRIPT')
-                    return {'FINISHED'}
-
-                try:
-                    # run script
-                    # Get scripts folder and add it to the search path for modules
-                    if dirname not in sys.path:
-                        sys.path.append(dirname)
-                    # Change current working directory to scripts folder
-                    os.chdir(dirname)
-
-                    # exec(compile(open(path).read(), path, 'exec'),{})
-                    global_namespace = {"__file__": p, "__name__": "__main__"}
-                    try:
-                        with open(p, 'rb') as file:  # r rb maybe binary?
-                            exec(compile(file.read(), p, 'exec'),
-                                 global_namespace)
-                    # the warning is a little late. zip+init but no bl_info, but working. TO SEE...
-                    except ValueError:
-                        self.report({'WARNING'}, 'Not valid File!')
-                        return {'CANCELLED'}
-
-                    self.report({'INFO'}, f'RUN SCRIPT: "{name}"')
-                    return {'FINISHED'}
-                except:
-                    print(f'===> SCRIPT ERROR in "{name}"')
-                    raise
+                if not os.path.exists(p):
+                    self.report({'ERROR'}, f'Wrong Path {p}')
+                    print(f"===> invalid path: {p}")
                     return {'CANCELLED'}
+
+                if Path(p).suffix == '.py':  # open .py
+                    try:
+                        f = open(p, "r", encoding='UTF-8')
+                    except OSError as ex:
+                        print(f'===> Error opening file: {p}, {ex}')
+                        continue
+
+                elif Path(p).suffix == '.zip':  # open .zip
+                    with ZipFile(p, 'r') as zf:
+                        init = [info.filename for info in zf.infolist(
+                        ) if info.filename.split("/")[1] == '__init__.py']
+                        for fic in init:
+                            try:
+                                f = io.TextIOWrapper(
+                                    zf.open(fic), encoding="utf-8")
+                            except OSError as ex:
+                                print(f'===> Error opening file: {p}, {ex}')
+                                continue
+                    del zf
+                try:
+                    data = get_bl_info_dic(f, p)  # detect bl_info
+                except AttributeError:
+                    self.report({'WARNING'}, 'Select a valid File!')
+                    return {'CANCELLED'}
+
+                body_info, ModuleType, ast, body = use_ast(p, data)  # use ast
+
+                # ADDON(S) INSTALLATION/RELOAD
+                if body_info:  # ADDONS
+                    try:
+                        mod = ModuleType(name)  # find bl_info parameters
+                        mod.bl_info = ast.literal_eval(body.value)
+                        data_mod_name = mod.bl_info['name']
+                        data_mod_version = mod.bl_info.get('version', (0, 0, 0))
+                        data_mod_category = mod.bl_info['category']
+
+                    except:
+                        print(f'===> AST error parsing bl_info for: {name}')
+                        import traceback
+                        traceback.print_exc()
+                        raise
+                        continue
+
+                    addon_list.append(
+                        [data_mod_category, data_mod_name, data_mod_version, name, p])  # do a list of parameters to sort them later
+
+                else:  # SCRIPT EXECUTION
+                    if len(self.files) > 1:
+                        self.report(
+                            {'ERROR'}, 'Not executed, Select only 1 SCRIPT')
+                        return {'FINISHED'}
+
+                    try:
+                        # run script
+                        # Get scripts folder and add it to the search path for modules
+                        if dirname not in sys.path:
+                            sys.path.append(dirname)
+                        # Change current working directory to scripts folder
+                        os.chdir(dirname)
+
+                        # exec(compile(open(path).read(), path, 'exec'),{})
+                        global_namespace = {"__file__": p, "__name__": "__main__"}
+                        try:
+                            with open(p, 'rb') as file:  # r rb maybe binary?
+                                exec(compile(file.read(), p, 'exec'),
+                                     global_namespace)
+                        # the warning is a little late. zip+init but no bl_info, but working. TO SEE...
+                        except ValueError:
+                            self.report({'WARNING'}, 'Not valid File!')
+                            return {'CANCELLED'}
+
+                        self.report({'INFO'}, f'RUN SCRIPT: "{name}"')
+                        return {'FINISHED'}
+                    except:
+                        print(f'===> SCRIPT ERROR in "{name}"')
+                        raise
+                        return {'CANCELLED'}
 
             # not in the precedent loop to not repeat same operations for each file
             greatest = []
@@ -549,8 +546,6 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
         layout = self.layout
         if self.install_folder:
             layout.label(text="INSTALL FOLDER AS AN ADDON: ")
-            # layout.label(text='"'+self.dir_name+'"')
-
         else:
             layout.label(text="Select file(s) and confirm")
             layout.prop(self, "update_versions")
