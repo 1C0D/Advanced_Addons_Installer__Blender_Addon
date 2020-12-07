@@ -6,7 +6,7 @@
 * on: install greater version number. reload if same
 * off: previous version allowed (actual version disabled)
 * avoids dupplicates (same content but different file name)  
-* you can have installed addons in a selected folder (that you can put in your bookmark) in console or in a text file  
+* you can have a list of all installed addons in a folder. in console or a text file  
     
 ## 2-install folder as an addon
 * detecting  "__init__.py" inside
@@ -30,6 +30,7 @@
 
 N.B you can check messages in the console
 
-last video https://youtu.be/5ksR991RwbM  
+last videos https://youtu.be/5ksR991RwbM 
+           https://www.youtube.com/watch?v=9e_BsdobhYM 
 
 
