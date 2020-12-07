@@ -8,7 +8,7 @@ import atexit
 import tempfile
 import io
 import addon_utils
-from time import ctime, sleep
+from time import ctime  # , sleep
 from collections import Counter
 from zipfile import ZipFile
 import shutil
@@ -17,7 +17,7 @@ bl_info = {
     "name": "Advanced Addons Installer",
     "description": "install save reload addons or run scripts",
     "author": "1C0D",
-    "version": (1, 0, 1),
+    "version": (1, 1, 0),
     "blender": (2, 90, 0),
     "location": "top bar (blender icon)/Text Editor> text menu",
     "warning": "",
@@ -121,6 +121,99 @@ def open_init(dirname):
     except OSError as ex:
         print(f'===> Error opening file: {init}')
     return f, init
+
+
+def is_installed(self, context):
+
+    addon_path = Path(self.directory)
+    addon_list = []
+
+    for name_ext in os.listdir(addon_path):
+        p = os.path.join(addon_path, name_ext)
+        name = Path(p).stem
+
+        if not os.path.isfile(p):
+            continue
+
+        if Path(p).suffix == '.py':  # open .py
+            try:
+                f = open(p, "r", encoding='UTF-8')
+            except OSError as ex:
+                print(f'===> Error opening file: {p}, {ex}')
+                continue
+
+        elif Path(p).suffix == '.zip':  # open .zip
+            try:
+                with ZipFile(p, 'r') as zf:
+                    init = [info.filename for info in zf.infolist(
+                    ) if info.filename.split("/")[1] == '__init__.py']
+                    for fic in init:
+                        try:
+                            f = io.TextIOWrapper(
+                                zf.open(fic), encoding="utf-8")
+                        except OSError as ex:
+                            print(f'===> Error opening file: {p}, {ex}')
+                            continue
+                del zf
+            except IndexError:
+                print(f'===> 1 file ignored: {p}')
+                continue
+        else:
+            continue
+
+        data = get_bl_info_dic(f, p)  # detect bl_info
+
+        body_info, ModuleType, ast, body = use_ast(p, data)  # use ast
+
+        # ADDON(S) INSTALLATION/RELOAD
+        if body_info:  # ADDONS
+            try:
+                mod = ModuleType(name)  # find bl_info parameters
+                mod.bl_info = ast.literal_eval(body.value)
+                data_mod_name = mod.bl_info['name']
+                data_mod_version = mod.bl_info.get('version', (0, 0, 0))
+                data_mod_category = mod.bl_info['category']
+
+            except:
+                print(f'===> AST error parsing bl_info for: {name}')
+                import traceback
+                traceback.print_exc()
+                raise
+                continue
+
+            addon_list.append(
+                (name, data_mod_category, data_mod_name, data_mod_version))  # do a list of parameters to sort them later
+
+    print('*'*50+"Installed"+'*'*50)
+    if addon_list:
+        installed = []
+        for mod_name in bpy.context.preferences.addons.keys():
+            try:
+                mod = sys.modules[mod_name]
+                installed.append(
+                    (mod.__name__, mod.bl_info['category'], mod.bl_info['name'], mod.bl_info.get('version', (0, 0, 0))))
+            except KeyError:
+                pass
+        # open a file to write to
+        if self.print_result:
+            filename = os.path.join(addon_path, "Installed_Addons.txt")
+            with open(filename, 'w') as file:
+                file.write(str(addon_path)+"\n")
+                file.write("\n")
+                file.write("Installed addons:\n")
+                file.write("\n")
+                for a in addon_list:
+                    if a in installed:
+                        file.write(", ".join(str(e) for e in a)+"\n")
+                        print(", ".join(str(e) for e in a))
+        else:
+            for a in addon_list:
+                if a in installed:
+                    print(", ".join(str(e) for e in a))            
+        print("")
+        print("File name | category | name | version")
+    else:
+        print('No addon installed in this directory')
 # ----------------------------- BROWSER --------------------------------------
 
 
@@ -180,10 +273,18 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
         if "__init__.py" in os.listdir(dirname) and bool(body_info):
             self.install_folder = True
 
+    def update(self, context):
+        if self.print_installed:
+            is_installed(self, context)
+            self.print_installed = False
+
     install_folder: bpy.props.BoolProperty(default=False, get=get1, set=set1, update=update1,
                                            name="Install From Folder")  # get=get1, set=set1, update=update1,
+
+    print_installed: bpy.props.BoolProperty(default=False, update=update)
+    print_result: bpy.props.BoolProperty(default=False)
     directory: bpy.props.StringProperty(
-        subtype='DIR_PATH')  # to have the directory path
+        subtype='DIR_PATH')  # to have the directory path too
 
     def execute(self, context):
 
@@ -298,17 +399,22 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
                         continue
 
                 elif Path(p).suffix == '.zip':  # open .zip
-                    with ZipFile(p, 'r') as zf:
-                        init = [info.filename for info in zf.infolist(
-                        ) if info.filename.split("/")[1] == '__init__.py']
-                        for fic in init:
-                            try:
-                                f = io.TextIOWrapper(
-                                    zf.open(fic), encoding="utf-8")
-                            except OSError as ex:
-                                print(f'===> Error opening file: {p}, {ex}')
-                                continue
-                    del zf
+                    try:
+                        with ZipFile(p, 'r') as zf:
+                            init = [info.filename for info in zf.infolist(
+                            ) if info.filename.split("/")[1] == '__init__.py']
+                            for fic in init:
+                                try:
+                                    f = io.TextIOWrapper(
+                                        zf.open(fic), encoding="utf-8")
+                                except OSError as ex:
+                                    print(
+                                        f'===> Error opening file: {p}, {ex}')
+                                    continue
+                        del zf
+                    except IndexError:
+                        print(f'===> 1 file ignored: {p}')
+                        continue
                 try:
                     data = get_bl_info_dic(f, p)  # detect bl_info
                 except AttributeError:
@@ -323,7 +429,8 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
                         mod = ModuleType(name)  # find bl_info parameters
                         mod.bl_info = ast.literal_eval(body.value)
                         data_mod_name = mod.bl_info['name']
-                        data_mod_version = mod.bl_info.get('version', (0, 0, 0))
+                        data_mod_version = mod.bl_info.get(
+                            'version', (0, 0, 0))
                         data_mod_category = mod.bl_info['category']
 
                     except:
@@ -351,7 +458,8 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
                         os.chdir(dirname)
 
                         # exec(compile(open(path).read(), path, 'exec'),{})
-                        global_namespace = {"__file__": p, "__name__": "__main__"}
+                        global_namespace = {
+                            "__file__": p, "__name__": "__main__"}
                         try:
                             with open(p, 'rb') as file:  # r rb maybe binary?
                                 exec(compile(file.read(), p, 'exec'),
@@ -549,9 +657,16 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
         else:
             layout.label(text="Select file(s) and confirm")
             layout.prop(self, "update_versions")
-
+        layout.label(text='')
+        layout.label(text="Clic (no change) > see in console:")
+        # ,  invert_checkbox=False)
+        layout.prop(self, "print_installed",
+                    text="Installed Addons in this folder  ", toggle=True)
+        layout.prop(self, "print_result",
+                    text="create installed_addons.txt (in folder)")
 
 # ----------------------------- INSTALL/RELOAD FROM TEXT EDITOR
+
 
 class INSTALLER_OT_TextEditor(bpy.types.Operator):
 
