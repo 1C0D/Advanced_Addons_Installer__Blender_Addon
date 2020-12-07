@@ -6,7 +6,7 @@
 * on: install greater version number. reload if same
 * off: previous version allowed (actual version disabled)
 * avoids dupplicates (same content but different file name)  
-* you can have a list of all installed addons in a folder. in console or a text file  
+* get the list of all installed addons in a folder. in console or a text file  
     
 ## 2-install folder as an addon
 * detecting  "__init__.py" inside
