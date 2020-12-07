@@ -6,6 +6,7 @@
 * on: install greater version number. reload if same
 * off: previous version allowed (actual version disabled)
 * avoids dupplicates (same content but different file name)
+you can have installed addons in a selected folder (that you can put in your bookmark) in console or in a text file
     
 ## 2-install folder as an addon
 * detecting  "__init__.py" inside
