@@ -30,7 +30,4 @@
 
 N.B you can check messages in the console
 
-last videos https://youtu.be/5ksR991RwbM 
-           https://www.youtube.com/watch?v=9e_BsdobhYM 
-
 
