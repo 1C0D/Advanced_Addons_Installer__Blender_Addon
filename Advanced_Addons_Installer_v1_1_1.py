@@ -17,7 +17,7 @@ bl_info = {
     "name": "Advanced Addons Installer",
     "description": "install save reload addons or run scripts",
     "author": "1C0D",
-    "version": (1, 1, 0),
+    "version": (1, 1, 1),
     "blender": (2, 90, 0),
     "location": "top bar (blender icon)/Text Editor> text menu",
     "warning": "",
@@ -311,6 +311,7 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
             data = get_bl_info_dic(f, init)  # detect bl_info
             body_info, ModuleType, ast, body = use_ast(
                 init, data)  # use ast to get bl_info[name]
+
             # ADDON FROM FOLDER
             if body_info:
                 try:
@@ -324,6 +325,7 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
                     traceback.print_exc()
                     raise
 
+                # disable
                 try:
                     bpy.ops.preferences.addon_disable(module=dirbasename)
 
@@ -332,6 +334,11 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
                     self.report(
                         {'ERROR'}, f"COULDN'T DISABLE {data_mod_name}, see in Console")
                     return {'CANCELLED'}
+
+                # copy/replace files in addon folder
+                if os.path.exists(dest):
+                    shutil.rmtree(dest)
+                shutil.copytree(dirname, dest)
 
                 # modify last modified > date of installation to get mod.__time__ (I do only on the __init__.py)
                 # https://stackoverflow.com/questions/11348953/how-can-i-set-the-last-modified-time-of-a-file-from-python
@@ -343,22 +350,7 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
 
                 now = datetime.now()
                 set_file_last_modified(init, now)
-
-                # copy/replace files in addon folder
-                if os.path.exists(dest):
-                    shutil.rmtree(dest)
-                shutil.copytree(dirname, dest)
-
-                # disable
-                try:
-                    bpy.ops.preferences.addon_disable(module=dirbasename)
-
-                except:
-                    print('===> couldn\'t disable' + name)
-                    self.report(
-                        {'ERROR'}, f"COULDN'T DISABLE {name}, see in Console")
-                    return {'CANCELLED'}
-
+                
                 # refresh addons
                 ar = context.screen.areas
                 area = next((a for a in ar if a.type == 'PREFERENCES'), None)
@@ -373,6 +365,7 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
                     self.report(
                         {'ERROR'}, f"COULDN'T ENABLE {data_mod_name}, see in Console")
                     return {'CANCELLED'}
+
 
                 self.report({'INFO'}, "Installed/Reloaded: " + data_mod_name)
 
@@ -612,9 +605,12 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
                         with ZipFile(p, 'r') as f:
                             names = [info.filename for info in f.infolist()
                                      if info.is_dir()]
-
-                        namezip = names[0].split("/")[0]
-
+                        print('names**********************************',names)
+                        if names:
+                            namezip = names[0].split("/")[0]
+                        else:
+                            namezip = name1
+                        print('namezip**********************************',namezip)
                         bpy.ops.preferences.addon_enable(module=namezip)
                     else:
                         bpy.ops.preferences.addon_enable(module=name1)
