@@ -605,12 +605,11 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
                         with ZipFile(p, 'r') as f:
                             names = [info.filename for info in f.infolist()
                                      if info.is_dir()]
-                        print('names**********************************',names)
                         if names:
                             namezip = names[0].split("/")[0]
                         else:
                             namezip = name1
-                        print('namezip**********************************',namezip)
+
                         bpy.ops.preferences.addon_enable(module=namezip)
                     else:
                         bpy.ops.preferences.addon_enable(module=name1)
