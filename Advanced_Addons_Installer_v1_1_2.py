@@ -17,7 +17,7 @@ bl_info = {
     "name": "Advanced Addons Installer",
     "description": "install save reload addons or run scripts",
     "author": "1C0D",
-    "version": (1, 1, 1),
+    "version": (1, 1, 2),
     "blender": (2, 90, 0),
     "location": "top bar (blender icon)/Text Editor> text menu",
     "warning": "",
@@ -679,7 +679,14 @@ class INSTALLER_OT_TextEditor(bpy.types.Operator):
             print('*'*150)
 
             name = context.space_data.text.name
-
+            
+            split=name.split(".")
+            if len(split)<=2 and split[0] == 'Text' and split[-1] !='py':
+                self.report({'ERROR'}, "Rename your addon in text editor(not Text or Text.001)")
+                return {'CANCELLED'}
+            # if start == 'Text' and end.isnumeric():
+                # self.report({'ERROR'}, "Rename your addon in text editor(not Text or Text.001)")
+                # return {'CANCELLED'}
             text = bpy.context.space_data.text
             addon = False
             for line in text.lines:
