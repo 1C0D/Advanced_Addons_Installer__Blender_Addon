@@ -17,7 +17,7 @@ bl_info = {
     "name": "Advanced Addons Installer",
     "description": "install save reload addons or run scripts",
     "author": "1C0D",
-    "version": (1, 1, 2),
+    "version": (1, 1, 3),
     "blender": (2, 90, 0),
     "location": "top bar (blender icon)/Text Editor> text menu",
     "warning": "",
@@ -120,6 +120,8 @@ def open_init(dirname):
         f = open(init, "r", encoding='UTF-8')
     except OSError as ex:
         print(f'===> Error opening file: {init}')
+    finally:
+        f.close()
     return f, init
 
 
@@ -141,6 +143,8 @@ def is_installed(self, context):
             except OSError as ex:
                 print(f'===> Error opening file: {p}, {ex}')
                 continue
+            finally:
+                f.close()
 
         elif Path(p).suffix == '.zip':  # open .zip
             try:
@@ -154,6 +158,8 @@ def is_installed(self, context):
                         except OSError as ex:
                             print(f'===> Error opening file: {p}, {ex}')
                             continue
+                        finally:
+                            zf.close()                            
                 del zf
             except IndexError:
                 print(f'===> 1 file ignored: {p}')
@@ -219,7 +225,7 @@ def is_installed(self, context):
 
 class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
     bl_idname = "installer.file_broswer"
-    bl_label = "install addon run ext script from files"
+    bl_label = "Install/Reload/Run"
 
     filter_glob: bpy.props.StringProperty(
         default='*.py;*.zip',
@@ -390,6 +396,8 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
                     except OSError as ex:
                         print(f'===> Error opening file: {p}, {ex}')
                         continue
+                    finally:
+                        f.close()
 
                 elif Path(p).suffix == '.zip':  # open .zip
                     try:
@@ -404,6 +412,8 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
                                     print(
                                         f'===> Error opening file: {p}, {ex}')
                                     continue
+                                finally:
+                                    zf.close()
                         del zf
                     except IndexError:
                         print(f'===> 1 file ignored: {p}')
@@ -824,6 +834,9 @@ class ADDON_OT_fake_remove(bpy.types.Operator):
                     f = open(name_path, "r", encoding='UTF-8')
                 except OSError as ex:
                     print("Error opening file:", name_path, ex)
+                    continue
+                finally:
+                    f.close()
 
                 data = get_bl_info_dic(f, name_path)
 
