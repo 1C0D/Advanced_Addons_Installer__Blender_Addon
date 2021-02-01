@@ -141,8 +141,7 @@ def is_installed(self, context):
             except OSError as ex:
                 print(f'===> Error opening file: {p}, {ex}')
                 continue
-            finally:
-                f.close()
+
 
         elif Path(p).suffix == '.zip':  # open .zip
             try:
@@ -157,8 +156,8 @@ def is_installed(self, context):
                             print(f'===> Error opening file: {p}, {ex}')
                             continue
                         finally:
-                            zf.close()                            
-                del zf
+                            zf.close()
+
             except IndexError:
                 print(f'===> 1 file ignored: {p}')
                 continue
@@ -166,7 +165,7 @@ def is_installed(self, context):
             continue
 
         data = get_bl_info_dic(f, p)  # detect bl_info
-
+        if Path(p).suffix == '.py': f.close()  
         body_info, ModuleType, ast, body = use_ast(p, data)  # use ast
 
         # ADDON(S) INSTALLATION/RELOAD
@@ -357,7 +356,8 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
                     os.utime(file_path, (dt_epoch, dt_epoch))
 
                 now = datetime.now()
-                set_file_last_modified(init, now)
+                new_path = os.path.join(dest, "__init__.py")
+                set_file_last_modified(new_path, now)
                 
                 # refresh addons
                 ar = context.screen.areas
@@ -398,8 +398,6 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
                     except OSError as ex:
                         print(f'===> Error opening file: {p}, {ex}')
                         continue
-                    finally:
-                        f.close()
 
                 elif Path(p).suffix == '.zip':  # open .zip
                     try:
@@ -422,6 +420,7 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
                         continue
                 try:
                     data = get_bl_info_dic(f, p)  # detect bl_info
+                    if Path(p).suffix == '.py': f.close()
                 except AttributeError:
                     self.report({'WARNING'}, 'Select a valid File!')
                     return {'CANCELLED'}
