@@ -953,7 +953,7 @@ class ADDON_OT_installed_list(bpy.types.Operator):
     def execute(self, context):
 
         addons_path = bpy.utils.user_resource('SCRIPTS', "addons")
-        filepath = os.path.join(addons_path, "Enabled Addons List.txt")
+        filepath = os.path.join(addons_path, "Enabled Addons.txt")
         addons = bpy.context.preferences.addons
 
         with open(filepath, 'w') as file:
@@ -970,7 +970,7 @@ class ADDON_OT_disable_all(bpy.types.Operator):
     def execute(self, context):
 
         addons_path = bpy.utils.user_resource('SCRIPTS', "addons")
-        filepath = os.path.join(addons_path, "Enabled Addons List.txt")
+        filepath = os.path.join(addons_path, "Enabled Addons.txt")
         addons = bpy.context.preferences.addons
 
         with open(filepath, 'w') as file:
@@ -998,7 +998,7 @@ class ADDON_OT_enable_from_list(bpy.types.Operator):
     def execute(self, context):
 
         addons_path = bpy.utils.user_resource('SCRIPTS', "addons")
-        filepath = os.path.join(addons_path, "Enabled Addons List.txt")
+        filepath = os.path.join(addons_path, "Enabled Addons.txt")
 
         liste=[]
         with open(filepath, 'r') as file:
@@ -1028,8 +1028,8 @@ class ADDON_MT_enable_disable_menu(bpy.types.Menu):
         layout.operator("addon.enable_from_list",
                         text="Enable All Addons")
         layout.operator("addon.installed_list",
-                        text="list only (user addons folder)") #faire ouvrir le dossier sur fichier ou entrée sup user folder
-        layout.operator("open.user_addons", text='Open User addons',
+                        text="list only: Enabled Addons.txt") #faire ouvrir le dossier sur fichier ou entrée sup user folder
+        layout.operator("open.user_addons", text='See it in User addons Folder',
                         icon='FOLDER_REDIRECT')
 
 
