@@ -17,7 +17,7 @@ bl_info = {
     "name": "Advanced Addons Installer",
     "description": "install save reload addons or run scripts",
     "author": "1C0D",
-    "version": (1, 1, 3),
+    "version": (1, 1, 4),
     "blender": (2, 90, 0),
     "location": "top bar (blender icon)/Text Editor> text menu",
     "warning": "",
@@ -944,7 +944,93 @@ class OPEN_OT_user_addons(bpy.types.Operator):
         bpy.ops.wm.path_open(filepath=filepath)
 
         return {"FINISHED"}
+
+class ADDON_OT_installed_list(bpy.types.Operator):
+    """generates addons list"""
+    bl_idname = "addon.installed_list"
+    bl_label = "generates addons list"
+
+    def execute(self, context):
+
+        addons_path = bpy.utils.user_resource('SCRIPTS', "addons")
+        filepath = os.path.join(addons_path, "Enabled Addons List.txt")
+        addons = bpy.context.preferences.addons
+
+        with open(filepath, 'w') as file:
+            for mod_name in list(addons.keys()):
+                file.write(mod_name+"\n")
+
+        return {'FINISHED'}
+    
+class ADDON_OT_disable_all(bpy.types.Operator):
+    """disable all addons"""
+    bl_idname = "addon.disable_all"
+    bl_label = "disable all addons"
+
+    def execute(self, context):
+
+        addons_path = bpy.utils.user_resource('SCRIPTS', "addons")
+        filepath = os.path.join(addons_path, "Enabled Addons List.txt")
+        addons = bpy.context.preferences.addons
+
+        with open(filepath, 'w') as file:
+            for mod_name in list(addons.keys()):
+                file.write(mod_name+"\n")
+
+        enablist = [addon.module for addon in addons]
+        for addon in addon_utils.modules():
+            print(addon.__name__)
+            if addon.__name__ in enablist and not "Advanced_Addons_Installer" in addon.__name__:
+                try:
+                    bpy.ops.preferences.addon_disable(module=addon.__name__)
+                except:
+                    self.report(
+                        {'WARNING'}, f"COULDN'T DISABLE {addon.__name__}, see in Console")
+                    
+
+        return {'FINISHED'}   
+
+class ADDON_OT_enable_from_list(bpy.types.Operator):
+    """enable addons from list"""
+    bl_idname = "addon.enable_from_list"
+    bl_label = "enable addons from list"
+
+    def execute(self, context):
+
+        addons_path = bpy.utils.user_resource('SCRIPTS', "addons")
+        filepath = os.path.join(addons_path, "Enabled Addons List.txt")
+
+        liste=[]
+        with open(filepath, 'r') as file:
+            for line in file:
+                # remove \n
+                element = line[:-1]
+                liste.append(element)    
+            for addon in addon_utils.modules():
+                if addon.__name__ in (liste) and not "Advanced_Addons_Installer" in addon.__name__:
+                    try:
+                        bpy.ops.preferences.addon_enable(module=addon.__name__)
+                    except:
+                        self.report(
+                            {'WARNING'}, f"COULDN'T ENABLE {addon.__name__}, see in Console")
+
+        return {'FINISHED'} 
+
 # ----------------------------------------Menus
+
+class ADDON_MT_enable_disable_menu(bpy.types.Menu):
+    bl_label = 'Enable/Disable All Addons'
+
+    def draw(self, context):
+        layout = self.layout
+        layout.operator("addon.disable_all",
+                        text="Disable All Addons")
+        layout.operator("addon.enable_from_list",
+                        text="Enable All Addons")
+        layout.operator("addon.installed_list",
+                        text="list only (user addons folder)") #faire ouvrir le dossier sur fichier ou entrée sup user folder
+        layout.operator("open.user_addons", text='Open User addons',
+                        icon='FOLDER_REDIRECT')
 
 
 class ADDON_MT_management_menu(bpy.types.Menu):
@@ -961,6 +1047,7 @@ class ADDON_MT_management_menu(bpy.types.Menu):
         layout.operator(ADDON_OT_last_installed.bl_idname)
         layout.operator(RESTART_OT_blender.bl_idname,
                         text="Restart Blender")
+        layout.menu('ADDON_MT_enable_disable_menu', text='Enable/Disable All Addons')
 
 
 def draw(self, context):
@@ -985,7 +1072,9 @@ def draw1(self, context):
 classes = (INSTALLER_OT_FileBrowser, INSTALLER_OT_TextEditor,
            ADDON_OT_Cleaner, ADDON_OT_fake_remove,
            ADDON_MT_management_menu, ADDON_OT_last_installed,
-           RESTART_OT_blender, OPEN_OT_user_addons)
+           RESTART_OT_blender, OPEN_OT_user_addons,
+           ADDON_OT_installed_list, ADDON_OT_disable_all,
+           ADDON_OT_enable_from_list, ADDON_MT_enable_disable_menu)
 
 addon_keymaps = []
 
