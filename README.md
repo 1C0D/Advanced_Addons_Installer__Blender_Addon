@@ -22,6 +22,7 @@
 * remove fake-modules
 * last installed addons (result in console)
 * restart blender (temp.blend if not saved)
+* menu install/unistall all addons (generating Enabled Addons.txt in user addon folder)
 
  -text editor
   * creates a quick favorite 'Ctrl+Q'
