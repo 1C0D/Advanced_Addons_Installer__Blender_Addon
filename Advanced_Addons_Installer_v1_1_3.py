@@ -120,8 +120,6 @@ def open_init(dirname):
         f = open(init, "r", encoding='UTF-8')
     except OSError as ex:
         print(f'===> Error opening file: {init}')
-    finally:
-        f.close()
     return f, init
 
 
@@ -249,6 +247,7 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
             dest = os.path.join(addon_path, dirbasename)
             f, init = open_init(dirname)
             data = get_bl_info_dic(f, init)  # detect bl_info
+            f.close()
             body_info, ModuleType, ast, body = use_ast(
                 init, data)  # use ast to get bl_info[name]
         return "__init__.py" in os.listdir(dirname) and bool(body_info)
@@ -261,6 +260,7 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
             dest = os.path.join(addon_path, dirbasename)
             f, init = open_init(dirname)
             data = get_bl_info_dic(f, init)  # detect bl_info
+            f.close()
             body_info, ModuleType, ast, body = use_ast(
                 init, data)  # use ast to get bl_info[name]
         valeur = ("__init__.py" in os.listdir(dirname)) and bool(body_info)
@@ -274,6 +274,7 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
             dest = os.path.join(addon_path, dirbasename)
             f, init = open_init(dirname)
             data = get_bl_info_dic(f, init)  # detect bl_info
+            f.close()
             body_info, ModuleType, ast, body = use_ast(
                 init, data)  # use ast to get bl_info[name]
         if "__init__.py" in os.listdir(dirname) and bool(body_info):
@@ -315,6 +316,7 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
 
             f, init = open_init(dirname)
             data = get_bl_info_dic(f, init)  # detect bl_info
+            f.close()
             body_info, ModuleType, ast, body = use_ast(
                 init, data)  # use ast to get bl_info[name]
 
@@ -849,6 +851,7 @@ class ADDON_OT_fake_remove(bpy.types.Operator):
                 if "__init__.py" in os.listdir(name_path) and name != "__pycache__":
                     f, init = open_init(name_path)
                     data = get_bl_info_dic(f, init)  # detect bl_info
+                    f.close()
                     body_info, ModuleType, ast, body = use_ast(
                         init, data)  # use ast to get bl_info[name]
                     if not body_info:
