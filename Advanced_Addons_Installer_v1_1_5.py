@@ -17,7 +17,7 @@ bl_info = {
     "name": "Advanced Addons Installer",
     "description": "install save reload addons or run scripts",
     "author": "1C0D",
-    "version": (1, 1, 4),
+    "version": (1, 1, 5),
     "blender": (2, 90, 0),
     "location": "top bar (blender icon)/Text Editor> text menu",
     "warning": "",
@@ -693,7 +693,7 @@ class INSTALLER_OT_TextEditor(bpy.types.Operator):
             
             split=name.split(".")
             if len(split)<=2 and split[0] == 'Text' and split[-1] !='py':
-                self.report({'ERROR'}, "Rename your addon in text editor(not Text or Text.001)")
+                self.report({'WARNING'}, 'Name your file in text editor (not "Text.")')
                 return {'CANCELLED'}
             # if start == 'Text' and end.isnumeric():
                 # self.report({'ERROR'}, "Rename your addon in text editor(not Text or Text.001)")
@@ -836,11 +836,9 @@ class ADDON_OT_fake_remove(bpy.types.Operator):
                 except OSError as ex:
                     print("Error opening file:", name_path, ex)
                     continue
-                finally:
-                    f.close()
 
                 data = get_bl_info_dic(f, name_path)
-
+                f.close()
                 if not data:
                     print('===> FAKE-MODULE REMOVED: ',  name)
                     names.append(name)
