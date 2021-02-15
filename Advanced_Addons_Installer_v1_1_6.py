@@ -17,7 +17,7 @@ bl_info = {
     "name": "Advanced Addons Installer",
     "description": "install save reload addons or run scripts",
     "author": "1C0D",
-    "version": (1, 1, 5),
+    "version": (1, 1, 6),
     "blender": (2, 90, 0),
     "location": "top bar (blender icon)/Text Editor> text menu",
     "warning": "",
@@ -71,7 +71,7 @@ def get_bl_info_dic(file, path):
                 l = line_iter.readline()
             except UnicodeDecodeError as ex:
                 print(f'===> Error reading file as UTF-8: {path}, {ex}')
-                continue
+                return None
 
             if len(l) == 0:
                 break
@@ -82,27 +82,25 @@ def get_bl_info_dic(file, path):
                 l = line_iter.readline()
             except UnicodeDecodeError as ex:
                 print(f'===> Error reading file as UTF-8: {path}, {ex}')
-                continue
+                return None
 
         data = "".join(lines)
-        del file
-
+    del file
     return data
 
 
 def use_ast(path, data):
     import ast
     ModuleType = type(ast)
-    body = None
-    body_info = None
+    body=None
 
     try:
         ast_data = ast.parse(data, filename=path)
     except:
-        print(f'===> Syntax error "ast.parse" can\'t read: {repr(path)}')
-        import traceback
-        traceback.print_exc()
-        ast_data = None
+        print(f'===> Syntax error "ast.parse" can\'t read: {path}')
+        ast_data = ""
+
+    body_info = None
 
     if ast_data:
         for body in ast_data.body:
@@ -111,16 +109,22 @@ def use_ast(path, data):
                     if getattr(body.targets[0], "id", "") == "bl_info":
                         body_info = body
                         break
+                        
     return body_info, ModuleType, ast, body
 
 
 def open_init(dirname):
     init = os.path.join(dirname, "__init__.py")
     try:
-        f = open(init, "r", encoding='UTF-8')
-    except OSError as ex:
+        with open(init, "r", encoding='UTF-8') as f:
+            data = get_bl_info_dic(f, init)  # detect bl_info
+            body_info, ModuleType, ast, body = use_ast(
+                init, data)  # use ast to get bl_info[name]
+    except EnvironmentError as ex:
         print(f'===> Error opening file: {init}')
-    return f, init
+        return None
+        
+    return  body_info, ModuleType, ast, body 
 
 
 def is_installed(self, context):
@@ -131,17 +135,18 @@ def is_installed(self, context):
     for name_ext in os.listdir(addon_path):
         p = os.path.join(addon_path, name_ext)
         name = Path(p).stem
+        data=[]
 
         if not os.path.isfile(p):
             continue
 
         if Path(p).suffix == '.py':  # open .py
             try:
-                f = open(p, "r", encoding='UTF-8')
-            except OSError as ex:
+                with open(p, "r", encoding='UTF-8') as f:
+                    data = get_bl_info_dic(f, p)  # detect bl_info
+            except EnvironmentError as ex: # parent of IOError, OSError *and* WindowsError where available
                 print(f'===> Error opening file: {p}, {ex}')
                 continue
-
 
         elif Path(p).suffix == '.zip':  # open .zip
             try:
@@ -150,22 +155,17 @@ def is_installed(self, context):
                     ) if info.filename.split("/")[1] == '__init__.py']
                     for fic in init:
                         try:
-                            f = io.TextIOWrapper(
-                                zf.open(fic), encoding="utf-8")
-                        except OSError as ex:
+                            with io.TextIOWrapper(
+                                zf.open(fic), encoding="utf-8") as f:
+                                data = get_bl_info_dic(f, p)  # detect bl_info                                
+                        except EnvironmentError as ex:
                             print(f'===> Error opening file: {p}, {ex}')
                             continue
-                        finally:
-                            zf.close()
 
             except IndexError:
                 print(f'===> 1 file ignored: {p}')
                 continue
-        else:
-            continue
 
-        data = get_bl_info_dic(f, p)  # detect bl_info
-        if Path(p).suffix == '.py': f.close()  
         body_info, ModuleType, ast, body = use_ast(p, data)  # use ast
 
         # ADDON(S) INSTALLATION/RELOAD
@@ -178,10 +178,10 @@ def is_installed(self, context):
                 data_mod_category = mod.bl_info['category']
 
             except:
-                print(f'===> AST error parsing bl_info for: {name}')
-                import traceback
-                traceback.print_exc()
-                raise
+                print(f'===> Invalid bl_info for: {name}')
+                # import traceback
+                # traceback.print_exc()
+                # raise
                 continue
 
             addon_list.append(
@@ -244,11 +244,8 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
             dirbasename = os.path.basename(dirname)
             addon_path = bpy.utils.user_resource('SCRIPTS', "addons")
             dest = os.path.join(addon_path, dirbasename)
-            f, init = open_init(dirname)
-            data = get_bl_info_dic(f, init)  # detect bl_info
-            f.close()
-            body_info, ModuleType, ast, body = use_ast(
-                init, data)  # use ast to get bl_info[name]
+            body_info, *_ = open_init(dirname)
+            
         return "__init__.py" in os.listdir(dirname) and bool(body_info)
 
     def set1(self, value):
@@ -257,11 +254,8 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
             dirbasename = os.path.basename(dirname)
             addon_path = bpy.utils.user_resource('SCRIPTS', "addons")
             dest = os.path.join(addon_path, dirbasename)
-            f, init = open_init(dirname)
-            data = get_bl_info_dic(f, init)  # detect bl_info
-            f.close()
-            body_info, ModuleType, ast, body = use_ast(
-                init, data)  # use ast to get bl_info[name]
+            body_info, *_ = open_init(dirname)
+
         valeur = ("__init__.py" in os.listdir(dirname)) and bool(body_info)
         valeur = value
 
@@ -271,11 +265,8 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
             dirbasename = os.path.basename(dirname)
             addon_path = bpy.utils.user_resource('SCRIPTS', "addons")
             dest = os.path.join(addon_path, dirbasename)
-            f, init = open_init(dirname)
-            data = get_bl_info_dic(f, init)  # detect bl_info
-            f.close()
-            body_info, ModuleType, ast, body = use_ast(
-                init, data)  # use ast to get bl_info[name]
+            body_info, *_ = open_init(dirname)
+
         if "__init__.py" in os.listdir(dirname) and bool(body_info):
             self.install_folder = True
 
@@ -312,12 +303,7 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
         dest = os.path.join(addon_path, dirbasename)
 
         if "__init__.py" in os.listdir(dirname):  # detect __init__ in folder
-
-            f, init = open_init(dirname)
-            data = get_bl_info_dic(f, init)  # detect bl_info
-            f.close()
-            body_info, ModuleType, ast, body = use_ast(
-                init, data)  # use ast to get bl_info[name]
+            body_info, ModuleType, ast, body = open_init(dirname)
 
             # ADDON FROM FOLDER
             if body_info:
@@ -327,10 +313,9 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
                     data_mod_name = mod.bl_info['name']
 
                 except:
-                    print(f'===> AST error parsing bl_info for: {dirbasename}')
-                    import traceback
-                    traceback.print_exc()
-                    raise
+                    # print(f'===> AST error parsing bl_info for: {dirbasename}')
+                    self.report({'ERROR'}, "Invalid bl_info in init file")
+                    return {'CANCELLED'}
 
                 # disable
                 try:
@@ -378,14 +363,20 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
                 self.report({'INFO'}, "Installed/Reloaded: " + data_mod_name)
 
                 return {'FINISHED'}
+                
+            else:
+                self.report({'ERROR'}, "no valid bl_info in init file")
+                return {'CANCELLED'}
 
 # ---------------------- addon installation from files/script running ----------------
 
         else:
             for f in self.files:
+                
                 p = os.path.join(dirname, f.name)
                 name = Path(p).stem
                 names.append(name)
+                data=[]
 
                 if not os.path.exists(p):
                     self.report({'ERROR'}, f'Wrong Path {p}')
@@ -394,10 +385,11 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
 
                 if Path(p).suffix == '.py':  # open .py
                     try:
-                        f = open(p, "r", encoding='UTF-8')
-                    except OSError as ex:
+                        with open(p, "r", encoding='UTF-8') as f:
+                            data = get_bl_info_dic(f, p)  # detect bl_info
+                    except EnvironmentError as ex:
                         print(f'===> Error opening file: {p}, {ex}')
-                        continue
+                        continue                      
 
                 elif Path(p).suffix == '.zip':  # open .zip
                     try:
@@ -406,24 +398,18 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
                             ) if info.filename.split("/")[1] == '__init__.py']
                             for fic in init:
                                 try:
-                                    f = io.TextIOWrapper(
-                                        zf.open(fic), encoding="utf-8")
-                                except OSError as ex:
+                                    with io.TextIOWrapper(
+                                        zf.open(fic), encoding="utf-8") as f:
+                                        data = get_bl_info_dic(f, p)  # detect bl_info                                           
+                                except EnvironmentError as ex:
                                     print(
                                         f'===> Error opening file: {p}, {ex}')
                                     continue
-                                finally:
-                                    zf.close()
+
                         del zf
                     except IndexError:
                         print(f'===> 1 file ignored: {p}')
                         continue
-                try:
-                    data = get_bl_info_dic(f, p)  # detect bl_info
-                    if Path(p).suffix == '.py': f.close()
-                except AttributeError:
-                    self.report({'WARNING'}, 'Select a valid File!')
-                    return {'CANCELLED'}
 
                 body_info, ModuleType, ast, body = use_ast(p, data)  # use ast
 
@@ -438,10 +424,10 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
                         data_mod_category = mod.bl_info['category']
 
                     except:
-                        print(f'===> AST error parsing bl_info for: {name}')
-                        import traceback
-                        traceback.print_exc()
-                        raise
+                        print(f'===> Invalid bl_info for: {name}')
+                        # import traceback
+                        # traceback.print_exc()
+                        # raise
                         continue
 
                     addon_list.append(
@@ -468,7 +454,7 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
                             with open(p, 'rb') as file:  # r rb maybe binary?
                                 exec(compile(file.read(), p, 'exec'),
                                      global_namespace)
-                        # the warning is a little late. zip+init but no bl_info, but working. TO SEE...
+
                         except ValueError:
                             self.report({'WARNING'}, 'Not valid File!')
                             return {'CANCELLED'}
@@ -477,7 +463,7 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
                         return {'FINISHED'}
                     except:
                         print(f'===> SCRIPT ERROR in "{name}"')
-                        raise
+                        raise                        
                         return {'CANCELLED'}
 
             # not in the precedent loop to not repeat same operations for each file
@@ -545,7 +531,7 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
 
                 print('')
                 print(
-                    f'NOT INSTALLED (file_name|version|name): {[(i[3]+".py",i[1],i[2]) for i in addon_list]}')
+                    f'NOT INSTALLED (file_name|name|version): {[(i[3]+".py",i[1],i[2]) for i in addon_list]}')
                 print('')
 
                 self.report(
@@ -635,13 +621,13 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
 
                 print('')
                 print(
-                    f'REMOVED (file_name|version|name): {[(i.__name__+".py",i.bl_info["name"],i.bl_info["version"]) for i in to_remove]}')
+                    f'REMOVED (file_name|name|version): {[(i.__name__+".py",i.bl_info["name"],i.bl_info["version"]) for i in to_remove]}')
                 print('')
                 print(
-                    f'NOT INSTALLED (file_name|version|name): {[(i[3]+".py",i[1],i[2]) for i in lower_versions]}')
+                    f'NOT INSTALLED (file_name|name|version): {[(i[3]+".py",i[1],i[2]) for i in lower_versions]}')
                 print('')
                 print(
-                    f'INSTALLED/RELOADED (file_name|version|name): {[(i[3]+".py",i[1],i[2]) for i in greatest]}')
+                    f'INSTALLED/RELOADED (file_name|name|version): {[(i[3]+".py",i[1],i[2]) for i in greatest]}')
                 print('')
 
                 self.report(
@@ -829,33 +815,29 @@ class ADDON_OT_fake_remove(bpy.types.Operator):
         # !listdir give some name.* not paths...
         for name in os.listdir(addon_path):
             name_path = os.path.join(addon_path, name)
-            # TODO folders(after zip install) ?
+
             if os.path.isfile(name_path) and Path(name_path).suffix == '.py':
                 try:
-                    f = open(name_path, "r", encoding='UTF-8')
-                except OSError as ex:
+                    with open(name_path, "r", encoding='UTF-8') as f:
+                        data = get_bl_info_dic(f, name_path)
+                        if not data:
+                            print('===> FAKE-MODULE REMOVED: ',  name)
+                            names.append(name)
+                            os.remove(name_path)
+                except EnvironmentError as ex:
                     print("Error opening file:", name_path, ex)
                     continue
 
-                data = get_bl_info_dic(f, name_path)
-                f.close()
-                if not data:
-                    print('===> FAKE-MODULE REMOVED: ',  name)
-                    names.append(name)
-                    os.remove(name_path)
-
             if os.path.isdir(name_path):
                 if "__init__.py" in os.listdir(name_path) and name != "__pycache__":
-                    f, init = open_init(name_path)
-                    data = get_bl_info_dic(f, init)  # detect bl_info
-                    f.close()
-                    body_info, ModuleType, ast, body = use_ast(
-                        init, data)  # use ast to get bl_info[name]
+                    body_info, ModuleType, ast, body = open_init(name_path)
+
                     if not body_info:
                         print('===> FAKE-MODULE REMOVED: ',  name, '(folder)')
                         names.append(name)
                         shutil.rmtree(name_path)
                         continue
+                        
                 if "__init__.py" not in os.listdir(name_path) and name != "__pycache__":
                     print('===> FAKE-MODULE REMOVED: ',  name, '(folder)')
                     names.append(name)
