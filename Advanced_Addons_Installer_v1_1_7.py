@@ -17,7 +17,7 @@ bl_info = {
     "name": "Advanced Addons Installer",
     "description": "install save reload addons or run scripts",
     "author": "1C0D",
-    "version": (1, 1, 6),
+    "version": (1, 1, 7),
     "blender": (2, 90, 0),
     "location": "top bar (blender icon)/Text Editor> text menu",
     "warning": "",
@@ -455,7 +455,7 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
                                 exec(compile(file.read(), p, 'exec'),
                                      global_namespace)
 
-                        except ValueError:
+                        except (ValueError, FileNotFoundError) as e:
                             self.report({'WARNING'}, 'Not valid File!')
                             return {'CANCELLED'}
 
