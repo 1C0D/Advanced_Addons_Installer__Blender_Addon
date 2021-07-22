@@ -35,7 +35,9 @@ Browser to directly apply things on selection, when confirm
     avoids dupplicates (same content but different file name)
     
 2-install folder as an addon
-    detecting  "__init__.py" inside
+    detecting  "__init__.py" inside. 
+    this is how the addon is switching between install from folder or normal install from a file or a zip
+    ! if you change the name of the folder the update version is not working
 
 3-install/reload active file from TEXT EDITOR
 
@@ -241,43 +243,44 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
     # https://blender.stackexchange.com/questions/30678/bpy-file-browser-get-selected-file-names
 
 # ---------- properties for installation from folder -------
-
     def get1(self):
         dirname = Path(self.directory)
         if "__init__.py" in os.listdir(dirname):
-            body_info = self.open_init_dirname(dirname)
+            dirbasename = os.path.basename(dirname)
+            addon_path = bpy.utils.user_resource('SCRIPTS', "addons")
+            body_info, *_ = open_init(dirname)
+            
         return "__init__.py" in os.listdir(dirname) and bool(body_info)
 
     def set1(self, value):
         dirname = Path(self.directory)
         if "__init__.py" in os.listdir(dirname):
-            body_info = self.open_init_dirname(dirname)
+            dirbasename = os.path.basename(dirname)
+            addon_path = bpy.utils.user_resource('SCRIPTS', "addons")
+            body_info, *_ = open_init(dirname)
+
         valeur = ("__init__.py" in os.listdir(dirname)) and bool(body_info)
         valeur = value
 
-    def update1(self, context):
+    def update_install_folder(self, context):
         dirname = Path(self.directory)
         if "__init__.py" in os.listdir(dirname):
-            body_info = self.open_init_dirname(dirname)
-        if "__init__.py" in os.listdir(dirname) and bool(body_info):
-            self.install_folder = True
+            dirbasename = os.path.basename(dirname)
+            addon_path = bpy.utils.user_resource('SCRIPTS', "addons")
+            body_info, *_ = open_init(dirname)
 
-    def open_init_dirname(self, dirname):
-        dirbasename = os.path.basename(dirname)
-        addon_path = bpy.utils.user_resource('SCRIPTS', 'addons')
-        dest = os.path.join(addon_path, dirbasename)
-        result, *_ = open_init(dirname)
-        return result
+            if bool(body_info):
+                self.install_folder = True
 
-    def update(self, context):
+    def update_print_installed(self, context):
         if self.print_installed:
             is_installed(self, context)
             self.print_installed = False
 
-    install_folder: bpy.props.BoolProperty(default=False, get=get1, set=set1, update=update1,
-                                           name="Install From Folder")  # get=get1, set=set1, update=update1,
+    install_folder: bpy.props.BoolProperty(default=False, get=get1, set=set1, update=update_install_folder,
+                                           name="Install From Folder")
 
-    print_installed: bpy.props.BoolProperty(default=False, update=update)
+    print_installed: bpy.props.BoolProperty(default=False, update=update_print_installed)
     print_result: bpy.props.BoolProperty(default=False)
     directory: bpy.props.StringProperty(
         subtype='DIR_PATH')  # to have the directory path too
@@ -299,7 +302,6 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
         dirname = Path(self.directory)
         dirbasename = os.path.basename(dirname)
         addon_path = bpy.utils.user_resource('SCRIPTS', "addons")
-        dest = os.path.join(addon_path, dirbasename)
 
         if "__init__.py" in os.listdir(dirname):  # detect __init__ in folder
             body_info, ModuleType, ast, body = open_init(dirname)
@@ -310,25 +312,23 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
                     mod = ModuleType(dirbasename)
                     mod.bl_info = ast.literal_eval(body.value)
                     data_mod_name = mod.bl_info['name']
+                    dest = os.path.join(addon_path, data_mod_name)
+
 
                 except:
-                    # print(f'===> AST error parsing bl_info for: {dirbasename}')
                     self.report({'ERROR'}, "Invalid bl_info in init file")
                     return {'CANCELLED'}
 
-                # disable
+                # remove
                 try:
-                    bpy.ops.preferences.addon_disable(module=dirbasename)
+                    bpy.ops.preferences.addon_remove(module=data_mod_name)
 
                 except:
-                    print('===> couldn\'t disable' + data_mod_name)
+                    print('===> couldn\'t remove' + data_mod_name)
                     self.report(
-                        {'ERROR'}, f"COULDN'T DISABLE {data_mod_name}, see in Console")
+                        {'ERROR'}, f"COULDN'T REMOVE {data_mod_name}, see in Console")
                     return {'CANCELLED'}
 
-                # copy/replace files in addon folder
-                if os.path.exists(dest):
-                    shutil.rmtree(dest)
                 shutil.copytree(dirname, dest)
 
                 # modify last modified > date of installation to get mod.__time__ (I do only on the __init__.py)
@@ -350,7 +350,7 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
 
                 # enable addon
                 try:
-                    bpy.ops.preferences.addon_enable(module=dirbasename)
+                    bpy.ops.preferences.addon_enable(module=data_mod_name)
 
                 except:
                     print('===> couldn\'t addon_enable ' + name)
@@ -651,12 +651,12 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
             layout.label(text="Select file(s) and confirm")
             layout.prop(self, "update_versions")
         layout.label(text='')
-        layout.label(text="Clic (no change) > see in console:")
+        layout.label(text="Clic to see in console or as text")
         # ,  invert_checkbox=False)
         layout.prop(self, "print_installed",
-                    text="Installed Addons in this folder  ", toggle=True)
+                    text="Installed Addons (in the folder)  ", toggle=True)
         layout.prop(self, "print_result",
-                    text="create installed_addons.txt (in folder)")
+                    text="print as installed.txt (in this folder)") #so the list of installed addons in a folder
 
 # ----------------------------- INSTALL/RELOAD FROM TEXT EDITOR
 
