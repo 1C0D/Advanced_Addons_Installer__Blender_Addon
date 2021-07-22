@@ -17,7 +17,7 @@ bl_info = {
     "name": "Advanced Addons Installer",
     "description": "install save reload addons or run scripts",
     "author": "1C0D",
-    "version": (1, 1, 7),
+    "version": (1, 1, 8),
     "blender": (2, 90, 0),
     "location": "top bar (blender icon)/Text Editor> text menu",
     "warning": "",
@@ -92,7 +92,7 @@ def get_bl_info_dic(file, path):
 def use_ast(path, data):
     import ast
     ModuleType = type(ast)
-    body=None
+    body = None
 
     try:
         ast_data = ast.parse(data, filename=path)
@@ -104,12 +104,14 @@ def use_ast(path, data):
 
     if ast_data:
         for body in ast_data.body:
-            if body.__class__ == ast.Assign:
-                if len(body.targets) == 1:
-                    if getattr(body.targets[0], "id", "") == "bl_info":
-                        body_info = body
-                        break
-                        
+            if (
+                body.__class__ == ast.Assign
+                and len(body.targets) == 1
+                and getattr(body.targets[0], "id", "") == "bl_info"
+            ):
+                body_info = body
+                break
+
     return body_info, ModuleType, ast, body
 
 
@@ -123,8 +125,8 @@ def open_init(dirname):
     except EnvironmentError as ex:
         print(f'===> Error opening file: {init}')
         return None
-        
-    return  body_info, ModuleType, ast, body 
+
+    return body_info, ModuleType, ast, body
 
 
 def is_installed(self, context):
@@ -135,7 +137,7 @@ def is_installed(self, context):
     for name_ext in os.listdir(addon_path):
         p = os.path.join(addon_path, name_ext)
         name = Path(p).stem
-        data=[]
+        data = []
 
         if not os.path.isfile(p):
             continue
@@ -144,7 +146,7 @@ def is_installed(self, context):
             try:
                 with open(p, "r", encoding='UTF-8') as f:
                     data = get_bl_info_dic(f, p)  # detect bl_info
-            except EnvironmentError as ex: # parent of IOError, OSError *and* WindowsError where available
+            except EnvironmentError as ex:  # parent of IOError, OSError *and* WindowsError where available
                 print(f'===> Error opening file: {p}, {ex}')
                 continue
 
@@ -156,8 +158,8 @@ def is_installed(self, context):
                     for fic in init:
                         try:
                             with io.TextIOWrapper(
-                                zf.open(fic), encoding="utf-8") as f:
-                                data = get_bl_info_dic(f, p)  # detect bl_info                                
+                                    zf.open(fic), encoding="utf-8") as f:
+                                data = get_bl_info_dic(f, p)  # detect bl_info
                         except EnvironmentError as ex:
                             print(f'===> Error opening file: {p}, {ex}')
                             continue
@@ -175,6 +177,8 @@ def is_installed(self, context):
                 mod.bl_info = ast.literal_eval(body.value)
                 data_mod_name = mod.bl_info['name']
                 data_mod_version = mod.bl_info.get('version', (0, 0, 0))
+                if len(data_mod_version) == 2:
+                    data_mod_version += (0,)
                 data_mod_category = mod.bl_info['category']
 
             except:
@@ -212,7 +216,7 @@ def is_installed(self, context):
         else:
             for a in addon_list:
                 if a in installed:
-                    print(", ".join(str(e) for e in a))            
+                    print(", ".join(str(e) for e in a))
         print("")
         print("File name | category | name | version")
     else:
@@ -241,34 +245,29 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
     def get1(self):
         dirname = Path(self.directory)
         if "__init__.py" in os.listdir(dirname):
-            dirbasename = os.path.basename(dirname)
-            addon_path = bpy.utils.user_resource('SCRIPTS', "addons")
-            dest = os.path.join(addon_path, dirbasename)
-            body_info, *_ = open_init(dirname)
-            
+            body_info = self.open_init_dirname(dirname)
         return "__init__.py" in os.listdir(dirname) and bool(body_info)
 
     def set1(self, value):
         dirname = Path(self.directory)
         if "__init__.py" in os.listdir(dirname):
-            dirbasename = os.path.basename(dirname)
-            addon_path = bpy.utils.user_resource('SCRIPTS', "addons")
-            dest = os.path.join(addon_path, dirbasename)
-            body_info, *_ = open_init(dirname)
-
+            body_info = self.open_init_dirname(dirname)
         valeur = ("__init__.py" in os.listdir(dirname)) and bool(body_info)
         valeur = value
 
     def update1(self, context):
         dirname = Path(self.directory)
         if "__init__.py" in os.listdir(dirname):
-            dirbasename = os.path.basename(dirname)
-            addon_path = bpy.utils.user_resource('SCRIPTS', "addons")
-            dest = os.path.join(addon_path, dirbasename)
-            body_info, *_ = open_init(dirname)
-
+            body_info = self.open_init_dirname(dirname)
         if "__init__.py" in os.listdir(dirname) and bool(body_info):
             self.install_folder = True
+
+    def open_initdirname(self, dirname):
+        dirbasename = os.path.basename(dirname)
+        addon_path = bpy.utils.user_resource('SCRIPTS', 'addons')
+        dest = os.path.join(addon_path, dirbasename)
+        result, *_ = open_init(dirname)
+        return result
 
     def update(self, context):
         if self.print_installed:
@@ -343,7 +342,7 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
                 now = datetime.now()
                 new_path = os.path.join(dest, "__init__.py")
                 set_file_last_modified(new_path, now)
-                
+
                 # refresh addons
                 ar = context.screen.areas
                 area = next((a for a in ar if a.type == 'PREFERENCES'), None)
@@ -359,11 +358,10 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
                         {'ERROR'}, f"COULDN'T ENABLE {data_mod_name}, see in Console")
                     return {'CANCELLED'}
 
-
                 self.report({'INFO'}, "Installed/Reloaded: " + data_mod_name)
 
                 return {'FINISHED'}
-                
+
             else:
                 self.report({'ERROR'}, "no valid bl_info in init file")
                 return {'CANCELLED'}
@@ -371,12 +369,12 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
 # ---------------------- addon installation from files/script running ----------------
 
         else:
-            for f in self.files:
-                
+            for f in self.files:  # <bpy_struct, PropertyGroup("addon.py")
+
                 p = os.path.join(dirname, f.name)
                 name = Path(p).stem
                 names.append(name)
-                data=[]
+                data = []
 
                 if not os.path.exists(p):
                     self.report({'ERROR'}, f'Wrong Path {p}')
@@ -389,7 +387,7 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
                             data = get_bl_info_dic(f, p)  # detect bl_info
                     except EnvironmentError as ex:
                         print(f'===> Error opening file: {p}, {ex}')
-                        continue                      
+                        continue
 
                 elif Path(p).suffix == '.zip':  # open .zip
                     try:
@@ -399,8 +397,9 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
                             for fic in init:
                                 try:
                                     with io.TextIOWrapper(
-                                        zf.open(fic), encoding="utf-8") as f:
-                                        data = get_bl_info_dic(f, p)  # detect bl_info                                           
+                                            zf.open(fic), encoding="utf-8") as f:
+                                        data = get_bl_info_dic(
+                                            f, p)  # detect bl_info
                                 except EnvironmentError as ex:
                                     print(
                                         f'===> Error opening file: {p}, {ex}')
@@ -421,6 +420,8 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
                         data_mod_name = mod.bl_info['name']
                         data_mod_version = mod.bl_info.get(
                             'version', (0, 0, 0))
+                        if len(data_mod_version) == 2:
+                            data_mod_version += (0,)
                         data_mod_category = mod.bl_info['category']
 
                     except:
@@ -463,7 +464,7 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
                         return {'FINISHED'}
                     except:
                         print(f'===> SCRIPT ERROR in "{name}"')
-                        raise                        
+                        raise
                         return {'CANCELLED'}
 
             # not in the precedent loop to not repeat same operations for each file
@@ -478,12 +479,12 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
                 dict = Counter(word for i, j, *_ in addon_list for word in [
                                (i, j)])
 
-                counter = [(word, count) for word,
-                           count in dict.most_common()]  # dupplicates
+                # counter = [(word, count) for word,
+                # count in dict.most_common()]  # dupplicates
 
                 # greatest / lower versions among selected (when multi install maybe several versions of a same addon...)
-                greater = ()
-                for u, v in counter:
+                # greater = ()
+                for u, v in dict.items():
                     greater = ()
                     for i, j, k, l, m in addon_list:
                         if (i, j) == u:
@@ -676,10 +677,11 @@ class INSTALLER_OT_TextEditor(bpy.types.Operator):
             print('*'*150)
 
             name = context.space_data.text.name
-            
-            split=name.split(".")
-            if len(split)<=2 and split[0] == 'Text' and split[-1] !='py':
-                self.report({'WARNING'}, 'Name your file in text editor (not "Text.")')
+
+            split = name.split(".")
+            if len(split) <= 2 and split[0] == 'Text' and split[-1] != 'py':
+                self.report(
+                    {'WARNING'}, 'Name your file in text editor (not "Text.")')
                 return {'CANCELLED'}
             # if start == 'Text' and end.isnumeric():
                 # self.report({'ERROR'}, "Rename your addon in text editor(not Text or Text.001)")
@@ -772,11 +774,10 @@ class ADDON_OT_Cleaner(bpy.types.Operator):
                     if not greater:
                         greater = k
                         greatest.append([i, j, k, l])
-                    elif greater and k > greater:
+                    elif k > greater:
                         greater = k
                         greatest.pop()
-                        greatest.append([i, j, k, l])
-
+                        greatest.append([i, j, greater, l])
         print('version', version)
         print('greatest', greatest)
         for g in greatest:
@@ -837,7 +838,7 @@ class ADDON_OT_fake_remove(bpy.types.Operator):
                         names.append(name)
                         shutil.rmtree(name_path)
                         continue
-                        
+
                 if "__init__.py" not in os.listdir(name_path) and name != "__pycache__":
                     print('===> FAKE-MODULE REMOVED: ',  name, '(folder)')
                     names.append(name)
@@ -892,12 +893,13 @@ def launch():
     if file_path:
         if bpy.data.is_dirty:  # some changes since the last save
             bpy.ops.wm.save_as_mainfile(filepath=file_path)
-            # launch a background process
-        subprocess.Popen([binary_path, file_path])
+
     else:  # if no save, save as temp
         file_path = os.path.join(tempfile.gettempdir(), "temp.blend")
         bpy.ops.wm.save_as_mainfile(filepath=file_path)
-        subprocess.Popen([binary_path, file_path])
+
+    # launch a background process
+    subprocess.Popen([binary_path, file_path])
 
 
 class RESTART_OT_blender(bpy.types.Operator):
@@ -925,6 +927,7 @@ class OPEN_OT_user_addons(bpy.types.Operator):
 
         return {"FINISHED"}
 
+
 class ADDON_OT_installed_list(bpy.types.Operator):
     """generates addons list"""
     bl_idname = "addon.installed_list"
@@ -941,7 +944,8 @@ class ADDON_OT_installed_list(bpy.types.Operator):
                 file.write(mod_name+"\n")
 
         return {'FINISHED'}
-    
+
+
 class ADDON_OT_disable_all(bpy.types.Operator):
     """disable all addons"""
     bl_idname = "addon.disable_all"
@@ -960,15 +964,18 @@ class ADDON_OT_disable_all(bpy.types.Operator):
         enablist = [addon.module for addon in addons]
         for addon in addon_utils.modules():
             print(addon.__name__)
-            if addon.__name__ in enablist and not "Advanced_Addons_Installer" in addon.__name__:
+            if (
+                addon.__name__ in enablist
+                and "Advanced_Addons_Installer" not in addon.__name__
+            ):
                 try:
                     bpy.ops.preferences.addon_disable(module=addon.__name__)
                 except:
                     self.report(
                         {'WARNING'}, f"COULDN'T DISABLE {addon.__name__}, see in Console")
-                    
 
-        return {'FINISHED'}   
+        return {'FINISHED'}
+
 
 class ADDON_OT_enable_from_list(bpy.types.Operator):
     """enable addons from list"""
@@ -980,23 +987,27 @@ class ADDON_OT_enable_from_list(bpy.types.Operator):
         addons_path = bpy.utils.user_resource('SCRIPTS', "addons")
         filepath = os.path.join(addons_path, "Enabled Addons.txt")
 
-        liste=[]
+        liste = []
         with open(filepath, 'r') as file:
             for line in file:
                 # remove \n
                 element = line[:-1]
-                liste.append(element)    
+                liste.append(element)
             for addon in addon_utils.modules():
-                if addon.__name__ in (liste) and not "Advanced_Addons_Installer" in addon.__name__:
+                if (
+                    addon.__name__ in (liste)
+                    and "Advanced_Addons_Installer" not in addon.__name__
+                ):
                     try:
                         bpy.ops.preferences.addon_enable(module=addon.__name__)
                     except:
                         self.report(
                             {'WARNING'}, f"COULDN'T ENABLE {addon.__name__}, see in Console")
 
-        return {'FINISHED'} 
+        return {'FINISHED'}
 
 # ----------------------------------------Menus
+
 
 class ADDON_MT_enable_disable_menu(bpy.types.Menu):
     bl_label = 'Enable/Disable All Addons'
@@ -1008,7 +1019,7 @@ class ADDON_MT_enable_disable_menu(bpy.types.Menu):
         layout.operator("addon.enable_from_list",
                         text="Enable All Addons")
         layout.operator("addon.installed_list",
-                        text="list only: Enabled Addons.txt") #faire ouvrir le dossier sur fichier ou entrée sup user folder
+                        text="list only: Enabled Addons.txt")  # faire ouvrir le dossier sur fichier ou entrée sup user folder
         layout.operator("open.user_addons", text='See it in User addons Folder',
                         icon='FOLDER_REDIRECT')
 
@@ -1027,7 +1038,8 @@ class ADDON_MT_management_menu(bpy.types.Menu):
         layout.operator(ADDON_OT_last_installed.bl_idname)
         layout.operator(RESTART_OT_blender.bl_idname,
                         text="Restart Blender")
-        layout.menu('ADDON_MT_enable_disable_menu', text='Enable/Disable All Addons')
+        layout.menu('ADDON_MT_enable_disable_menu',
+                    text='Enable/Disable All Addons')
 
 
 def draw(self, context):
