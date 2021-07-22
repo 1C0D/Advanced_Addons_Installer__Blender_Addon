@@ -262,7 +262,7 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
         if "__init__.py" in os.listdir(dirname) and bool(body_info):
             self.install_folder = True
 
-    def open_initdirname(self, dirname):
+    def open_init_dirname(self, dirname):
         dirbasename = os.path.basename(dirname)
         addon_path = bpy.utils.user_resource('SCRIPTS', 'addons')
         dest = os.path.join(addon_path, dirbasename)
