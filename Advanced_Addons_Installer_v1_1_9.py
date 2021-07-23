@@ -8,7 +8,7 @@ import atexit
 import tempfile
 import io
 import addon_utils
-from time import ctime  # , sleep
+from time import ctime #, sleep
 from collections import Counter
 from zipfile import ZipFile
 import shutil
@@ -99,7 +99,7 @@ def use_ast(path, data):
     try:
         ast_data = ast.parse(data, filename=path)
     except:
-        print(f'===> Syntax error "ast.parse" can\'t read: {path}')
+        # print(f'===> Syntax error "ast.parse" can\'t read: {path}') #dll for example. I prefer to ignore this
         ast_data = ""
 
     body_info = None
@@ -220,9 +220,10 @@ def is_installed(self, context):
                 if a in installed:
                     print(", ".join(str(e) for e in a))
         print("")
-        print("File name | category | name | version")
+        print("File name     |      category     |      name     |      version")
     else:
         print('No addon installed in this directory')
+
 # ----------------------------- BROWSER --------------------------------------
 
 
@@ -231,7 +232,7 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
     bl_label = "Install/Reload/Run"
 
     filter_glob: bpy.props.StringProperty(
-        default='*.py;*.zip',
+        default='*.py;*.zip;*.txt',
         options={'HIDDEN'},
         subtype='FILE_PATH'  # to be sure to select a file
     )
@@ -273,9 +274,10 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
                 self.install_folder = True
 
     def update_print_installed(self, context):
+
         if self.print_installed:
             is_installed(self, context)
-            self.print_installed = False
+            
 
     install_folder: bpy.props.BoolProperty(default=False, get=get1, set=set1, update=update_install_folder,
                                            name="Install From Folder")
@@ -284,6 +286,7 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
     print_result: bpy.props.BoolProperty(default=False)
     directory: bpy.props.StringProperty(
         subtype='DIR_PATH')  # to have the directory path too
+
 
     def execute(self, context):
 
@@ -479,11 +482,6 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
                 dict = Counter(word for i, j, *_ in addon_list for word in [
                                (i, j)])
 
-                # counter = [(word, count) for word,
-                # count in dict.most_common()]  # dupplicates
-
-                # greatest / lower versions among selected (when multi install maybe several versions of a same addon...)
-                # greater = ()
                 for u, v in dict.items():
                     greater = ()
                     for i, j, k, l, m in addon_list:
@@ -647,16 +645,18 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
         layout = self.layout
         if self.install_folder:
             layout.label(text="INSTALL FOLDER AS AN ADDON: ")
+            # layout.prop(self, "update_versions") #I need to add update option to "install from folder" too? 
+            # the whole addon should use mode functions. but well this is a bunch of code and this is working well. maybe later 
         else:
+            layout.prop(self, "update_versions")
             layout.label(text="Select file(s) and confirm")
             layout.prop(self, "update_versions")
-        layout.label(text='')
-        layout.label(text="Clic to see in console or as text")
-        # ,  invert_checkbox=False)
-        layout.prop(self, "print_installed",
-                    text="Installed Addons (in the folder)  ", toggle=True)
-        layout.prop(self, "print_result",
-                    text="print as installed.txt (in this folder)") #so the list of installed addons in a folder
+            layout.label(text='')
+            layout.label(text='Installed Addons in the Folder')
+            layout.prop(self, "print_result",
+                        text="File (installed.txt)")
+            layout.prop(self, "print_installed",
+                        text="Print in Console or File", toggle=True)
 
 # ----------------------------- INSTALL/RELOAD FROM TEXT EDITOR
 
@@ -778,12 +778,10 @@ class ADDON_OT_Cleaner(bpy.types.Operator):
                         greater = k
                         greatest.pop()
                         greatest.append([i, j, greater, l])
-        print('version', version)
-        print('greatest', greatest)
+
         for g in greatest:
             if g in version:
                 version.remove(g)
-        print('version', version)
 
         for v in version:
             bpy.ops.preferences.addon_remove(module=v[3])
@@ -813,7 +811,6 @@ class ADDON_OT_fake_remove(bpy.types.Operator):
         addon_path = bpy.utils.user_resource('SCRIPTS', "addons")
         names = []
 
-        # !listdir give some name.* not paths...
         for name in os.listdir(addon_path):
             name_path = os.path.join(addon_path, name)
 
@@ -876,7 +873,7 @@ class ADDON_OT_last_installed(bpy.types.Operator):
         for last in last_installed_date:
             print(last)
         print("")
-        print("File name | category | name | version | date")
+        print("File name     |      category     |      name     |      version      |      date")
 
         self.report({'INFO'}, "See in the Console")
 
@@ -907,12 +904,9 @@ class RESTART_OT_blender(bpy.types.Operator):
     bl_label = "Restart"
 
     def execute(self, context):
-        # what is reloaded after the exit
-        atexit.register(launch)
-        # sleep #? _if bug
-        # sleep(0.2)
-        # # quit blender
-        exit()
+        
+        atexit.register(launch) # what is reloaded after the exit        
+        exit() # quit blender
         return {'FINISHED'}
 
 
@@ -922,8 +916,13 @@ class OPEN_OT_user_addons(bpy.types.Operator):
 
     def execute(self, context):
 
-        filepath = bpy.utils.user_resource('SCRIPTS', "addons")
-        bpy.ops.wm.path_open(filepath=filepath)
+        addons_path = bpy.utils.user_resource('SCRIPTS', "addons")
+        filepath = os.path.join(addons_path, "Enabled.txt")
+        if os.path.exists(filepath):
+            subprocess.Popen(f'explorer /select, {filepath}')  # bpy.ops.wm.path_open(filepath=filepath) + select file
+        else:
+            bpy.ops.addon.installed_list()
+            subprocess.Popen(f'explorer /select, {filepath}')
 
         return {"FINISHED"}
 
@@ -936,7 +935,7 @@ class ADDON_OT_installed_list(bpy.types.Operator):
     def execute(self, context):
 
         addons_path = bpy.utils.user_resource('SCRIPTS', "addons")
-        filepath = os.path.join(addons_path, "Enabled Addons.txt")
+        filepath = os.path.join(addons_path, "Enabled.txt")
         addons = bpy.context.preferences.addons
 
         with open(filepath, 'w') as file:
@@ -949,12 +948,12 @@ class ADDON_OT_installed_list(bpy.types.Operator):
 class ADDON_OT_disable_all(bpy.types.Operator):
     """disable all addons"""
     bl_idname = "addon.disable_all"
-    bl_label = "disable all addons"
+    bl_label = "create list & disable all addons"
 
     def execute(self, context):
 
         addons_path = bpy.utils.user_resource('SCRIPTS', "addons")
-        filepath = os.path.join(addons_path, "Enabled Addons.txt")
+        filepath = os.path.join(addons_path, "Enabled.txt")
         addons = bpy.context.preferences.addons
 
         with open(filepath, 'w') as file:
@@ -963,7 +962,6 @@ class ADDON_OT_disable_all(bpy.types.Operator):
 
         enablist = [addon.module for addon in addons]
         for addon in addon_utils.modules():
-            print(addon.__name__)
             if (
                 addon.__name__ in enablist
                 and "Advanced_Addons_Installer" not in addon.__name__
@@ -985,7 +983,7 @@ class ADDON_OT_enable_from_list(bpy.types.Operator):
     def execute(self, context):
 
         addons_path = bpy.utils.user_resource('SCRIPTS', "addons")
-        filepath = os.path.join(addons_path, "Enabled Addons.txt")
+        filepath = os.path.join(addons_path, "Enabled.txt")
 
         liste = []
         with open(filepath, 'r') as file:
@@ -1008,19 +1006,18 @@ class ADDON_OT_enable_from_list(bpy.types.Operator):
 
 # ----------------------------------------Menus
 
-
 class ADDON_MT_enable_disable_menu(bpy.types.Menu):
     bl_label = 'Enable/Disable All Addons'
 
     def draw(self, context):
         layout = self.layout
         layout.operator("addon.disable_all",
-                        text="Disable All Addons")
+                        text="Do a List & Disable All")
         layout.operator("addon.enable_from_list",
-                        text="Enable All Addons")
+                        text="Enable All from this List")
         layout.operator("addon.installed_list",
-                        text="list only: Enabled Addons.txt")  # faire ouvrir le dossier sur fichier ou entrée sup user folder
-        layout.operator("open.user_addons", text='See it in User addons Folder',
+                        text='Do List Only (Enabled.txt)')
+        layout.operator("open.user_addons", text='See List',
                         icon='FOLDER_REDIRECT')
 
 
