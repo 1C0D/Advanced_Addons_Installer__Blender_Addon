@@ -17,7 +17,7 @@ bl_info = {
     "name": "Advanced Addons Installer",
     "description": "install save reload addons or run scripts",
     "author": "1C0D",
-    "version": (1, 1, 8),
+    "version": (1, 1, 9),
     "blender": (2, 90, 0),
     "location": "top bar (blender icon)/Text Editor> text menu",
     "warning": "",
@@ -191,7 +191,7 @@ def is_installed(self, context):
                 continue
 
             addon_list.append(
-                (name, data_mod_category, data_mod_name, data_mod_version))  # do a list of parameters to sort them later
+                (name, data_mod_category, data_mod_name, data_mod_version))  # list of parameters to sort
 
     print('*'*50+"Installed"+'*'*50)
     if addon_list:
@@ -200,7 +200,8 @@ def is_installed(self, context):
             try:
                 mod = sys.modules[mod_name]
                 installed.append(
-                    (mod.__name__, mod.bl_info['category'], mod.bl_info['name'], mod.bl_info.get('version', (0, 0, 0))))
+                    (mod.__name__, mod.bl_info['category'], mod.bl_info['name'], 
+                    mod.bl_info.get('version', (0, 0, 0))))
             except KeyError:
                 pass
         # open a file to write to
@@ -650,7 +651,6 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
         else:
             layout.prop(self, "update_versions")
             layout.label(text="Select file(s) and confirm")
-            layout.prop(self, "update_versions")
             layout.label(text='')
             layout.label(text='Installed Addons in the Folder')
             layout.prop(self, "print_result",
