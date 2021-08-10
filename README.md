@@ -1,33 +1,44 @@
-# Advanced Addons Installer 
-## Browser to directly apply things on selection, when confirm
+# Advanced Addons Installer  
+## Browser to directly apply things on selection, when confirm  
+  
+![video of presentation](https://youtu.be/-N1ua8GWvqI)    
+  
+## 1-install/reload selected ADDON(S)  
+ "Update" option (in browser):  
+* on: install greater version number. reload if same  
+* off: previous version allowed (actual version disabled)  
+avoids dupplicates and fake modules  
+     
+## 2-install folder as an addon  
+* detecting  "__init__.py" inside  
+  
+## 3-install/reload active file from TEXT EDITOR  
+  
+## 4-run scripts (single file .py with no bl_info)  
+  
+## 5-location and options 
+  
+-Blender icon menu:  
+ *  install/reload addon (allows to put it in all Quick favorites)  
+   
+-File menu  
+* restart (blender)  
+  
+-in the default blender installer (in properties)  
+* last installed addons  
+* disable/enable all addons  
+* remove fake-modules  
+* clean "missing scripts"  
+* clean dupplicates and lower versions  
+  
+-advanced addons installer browser  
+* same menu that the one before in blender properties
+* Installed addons from folder  
+* Install from list   
 
-## 1-install/reload selected ADDON(S)
- "Update" option (in browser):
-* on: install greater version number. reload if same
-* off: previous version allowed (actual version disabled)
-* avoids dupplicates (same content but different file name)  
-* get the list of all installed addons in a folder. in console or a text file  
-    
-## 2-install folder as an addon
-* detecting  "__init__.py" inside
-
-## 3-install/reload active file from TEXT EDITOR
-
-## 4-run scripts (single file .py)
-
-## 5-location and options
--Blender icon menu:
- *  install/reload addon
-* clean dupplicates and lower versions
-* remove fake-modules
-* last installed addons (result in console)
-* restart blender (temp.blend if not saved)
-* menu enbale/disable all addons (generating Enabled Addons.txt in user addon folder)
-
- -text editor
-  * creates a quick favorite 'Ctrl+Q'
-  * install/reload addon
-  * install/reload from Text Editor
+ -text editor  
+  * creates a quick favorite 'Ctrl+Q' 
+  * "Addon from text editor" in text menu
 
 N.B you can check messages in the console
 
