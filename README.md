@@ -1,7 +1,7 @@
 # Advanced Addons Installer  
 ## Browser to directly apply things on selection, when confirm  
   
-![video of presentation](https://youtu.be/-N1ua8GWvqI)    
+[video of presentation](https://youtu.be/-N1ua8GWvqI)    
   
 ## 1-install/reload selected ADDON(S)  
  "Update" option (in browser):  
