@@ -17,7 +17,7 @@ bl_info = {
     "name": "Advanced Addons Installer",
     "description": "install save reload addons or run scripts",
     "author": "1C0D",
-    "version": (1, 2, 0),
+    "version": (1, 3, 0),
     "blender": (2, 93, 0),
     "location": "top bar (blender icon)/Text Editor> text menu",
     "warning": "",
@@ -187,7 +187,7 @@ def get_module_infos(name, ModuleType, ast, body):  # compare with blender code
     data_mod_version = mod.bl_info.get('version', (0, 0, 0))
     if len(data_mod_version) == 2:
         data_mod_version += (0,)
-    data_mod_category = mod.bl_info['category']
+    data_mod_category = mod.bl_info.get('category', 'User')
     return data_mod_name, data_mod_category, data_mod_version
 
 
@@ -293,7 +293,7 @@ class IS_OT_Installed(bpy.types.Operator):
                         continue
                     else:
                         installed.append(
-                            (mod.__name__, mod.bl_info['category'], mod.bl_info['name'],
+                            (mod.__name__, mod.bl_info.get('category', 'User'), mod.bl_info['name'],
                              mod.bl_info.get('version', (0, 0, 0))))
             # open a file to write to
             if context.scene.print_result_bridge:
@@ -580,19 +580,19 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
 
             # don't install < versions
             not_installed = [g for g in greatest for addon in addon_utils.modules(refresh=False)
-                             if (g[0] == addon.bl_info['category']
+                             if (g[0] == addon.bl_info.get('category', 'User')
                                  and g[1] == addon.bl_info['name']
-                                 and g[2] < addon.bl_info['version'])]
+                                 and g[2] < addon.bl_info.get('version', (0, 0, 0)))]
 
             for n in not_installed:
                 greatest.remove(n)
 
             # remove <= installed version
             to_remove = [addon for addon in addon_utils.modules(refresh=False) for g in greatest
-                         if (addon.bl_info['category'] == g[0]
+                         if (addon.bl_info.get('category', 'User') == g[0]
                              and addon.bl_info['name'] == g[1]
-                             and (addon.bl_info['version'] < g[2]
-                                  or (addon.bl_info['version'] == g[2]
+                             and (addon.bl_info.get('version', (0, 0, 0)) < g[2]
+                                  or (addon.bl_info.get('version', (0, 0, 0)) == g[2]
                                       and addon.__name__ != g[3])))]
 
             for removed in to_remove:
@@ -612,7 +612,7 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
 
             my_list = [addon for addon in addon_utils.modules(refresh=False) for a in addon_list
                        if (addon.bl_info['name'] == a[1]
-                           and addon.bl_info['category'] == a[0])]
+                           and addon.bl_info.get('category', 'User') == a[0])]
             for a in my_list:
                 bpy.ops.preferences.addon_disable(module=a.__name__)
 
@@ -1025,7 +1025,7 @@ class ADDON_OT_last_installed(bpy.types.Operator):
                 try:
                     mod = sys.modules[mod_name]
                     installed.append(
-                        (mod.__name__, mod.bl_info['category'], mod.bl_info['name'], mod.bl_info.get('version', (0, 0, 0)), mod.__time__))
+                        (mod.__name__, mod.bl_info.get('category', 'User'), mod.bl_info['name'], mod.bl_info.get('version', (0, 0, 0)), mod.__time__))
                 except KeyError:
                     pass
         last_installed = sorted(installed, key=lambda x: (x[4]))
