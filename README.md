@@ -10,7 +10,7 @@
 avoids dupplicates and fake modules  
      
 ## 2-install folder as an addon  
-* detecting  "__init__.py" inside  
+* detecting  "\_\_init\_\_.py" inside  
   
 ## 3-install/reload active file from TEXT EDITOR  
   
