@@ -17,8 +17,8 @@ bl_info = {
     "name": "Advanced Addons Installer",
     "description": "install save reload addons or run scripts",
     "author": "1C0D",
-    "version": (1, 3, 0),
-    "blender": (2, 93, 0),
+    "version": (1, 3, 1),
+    "blender": (2, 93, 0), # and 2.3
     "location": "top bar (blender icon)/Text Editor> text menu",
     "warning": "",
     "doc_url": "https://github.com/1C0D/Addon_Installer-Script_Runner-BlenderAddon",
@@ -60,6 +60,7 @@ N.B you can check messages in the console
 
 '''
 
+#os.path.abspath(bpy.path.abspath(relpath))
 
 # ----------------------------- FUNCTIONS --------------------------------------
 
@@ -279,7 +280,7 @@ class IS_OT_Installed(bpy.types.Operator):
         if addon_list:
             installed = []
 
-            addon_path = bpy.utils.user_resource('SCRIPTS', "addons")
+            addon_path = bpy.utils.user_resource('SCRIPTS', path="addons")
             # check only user addons enabled!
             for mod_name, path in bpy.path.module_names(addon_path):
                 if mod_name in context.preferences.addons.keys():
@@ -447,7 +448,7 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
 
         dirpath = Path(self.directory)
         dirname = os.path.basename(dirpath)
-        addon_path = bpy.utils.user_resource('SCRIPTS', "addons")
+        addon_path = bpy.utils.user_resource('SCRIPTS', path="addons")
         err = False
         from_folder = False
         addon_list = []
@@ -835,11 +836,11 @@ class INSTALLER_OT_TextEditor(bpy.types.Operator):
                 else:
                     name += '.py'  # .py missing in text editor name
 
-            addon_path = bpy.utils.user_resource('SCRIPTS', "addons")
-            full_path = os.path.abspath(os.path.join(addon_path, name))
+            addon_path = bpy.utils.user_resource('SCRIPTS', path="addons")
+            full_path = os.path.join(addon_path, name)
 
             # save to blender addons folder
-            bpy.ops.text.save_as(filepath=full_path)
+            bpy.ops.text.save_as(filepath=full_path, check_existing=False)
 
             # disable
             try:
@@ -966,7 +967,7 @@ class ADDON_OT_fake_remove(bpy.types.Operator):
 
     def execute(self, context):
 
-        addon_path = bpy.utils.user_resource('SCRIPTS', "addons")
+        addon_path = bpy.utils.user_resource('SCRIPTS', path="addons")
         names = []
 
         for name in os.listdir(addon_path):
@@ -1019,7 +1020,7 @@ class ADDON_OT_last_installed(bpy.types.Operator):
         print('\n' + '*'*20 + ' sorted last installed addonsR ' + '*'*20 + '\n')
         installed = []
 
-        addon_path = bpy.utils.user_resource('SCRIPTS', "addons")
+        addon_path = bpy.utils.user_resource('SCRIPTS', path="addons")
         for mod_name, path in bpy.path.module_names(addon_path):
             if mod_name in context.preferences.addons.keys():
                 try:
@@ -1083,7 +1084,7 @@ class ADDON_OT_installed_list(bpy.types.Operator):
 
     def execute(self, context):
 
-        addons_path = bpy.utils.user_resource('SCRIPTS', "addons")
+        addons_path = bpy.utils.user_resource('SCRIPTS', path="addons")
         filepath = os.path.join(addons_path, "Enabled.txt")
         addons = context.preferences.addons
 
@@ -1108,7 +1109,7 @@ class ADDON_OT_disable_all(bpy.types.Operator):
         # lets clean up "missing scripts"
         bpy.ops.addon.missin_script_remove()
 
-        addons_path = bpy.utils.user_resource('SCRIPTS', "addons")
+        addons_path = bpy.utils.user_resource('SCRIPTS', path="addons")
         filepath = os.path.join(addons_path, "Enabled.txt")
         addons = context.preferences.addons
 
@@ -1138,7 +1139,7 @@ class ADDON_OT_enable_from_list(bpy.types.Operator):
 
     def execute(self, context):
 
-        addons_path = bpy.utils.user_resource('SCRIPTS', "addons")
+        addons_path = bpy.utils.user_resource('SCRIPTS', path="addons")
         filepath = os.path.join(addons_path, "Enabled.txt")
 
         if not os.path.exists(filepath):
@@ -1285,7 +1286,10 @@ def register():
     # menus entries
 
     bpy.types.TEXT_MT_text.append(draw1)
-    bpy.types.TOPBAR_MT_app.append(draw)
+    if bpy.app.version >= (2, 3, 0):
+        bpy.types.TOPBAR_MT_blender.append(draw)
+    else:
+        bpy.types.TOPBAR_MT_app.append(draw)
     bpy.types.TOPBAR_MT_file.append(draw2)
     bpy.types.USERPREF_PT_addons.prepend(header)
 
@@ -1311,9 +1315,12 @@ def unregister():
 
     # menus entries
     bpy.types.TEXT_MT_text.remove(draw1)
-    bpy.types.TOPBAR_MT_app.remove(draw)
-    bpy.types.TOPBAR_MT_app.remove(draw2)
-    bpy.types.TOPBAR_MT_app.remove(header)
+    if bpy.app.version >= (2, 3, 0):
+        bpy.types.TOPBAR_MT_app.remove(draw)
+    else:
+        bpy.types.TOPBAR_MT_app.remove(draw)
+    bpy.types.TOPBAR_MT_file.remove(draw2)
+    bpy.types.USERPREF_PT_addons.remove(header)
 
     # classes
     for c in classes:
