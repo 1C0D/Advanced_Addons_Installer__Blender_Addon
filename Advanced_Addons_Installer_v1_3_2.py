@@ -1247,21 +1247,21 @@ bpy.types.Scene.switch = bpy.props.BoolProperty(
     default=True, update=update_switch, description='disable/enable all addons')
 
 
-def header(self, context, factor=0.3):
+def header(self, context, factor=1):
 
     layout = self.layout
     split = layout.split(factor=factor)
     row = split.row()
-    row.operator(ADDON_OT_last_installed.bl_idname, text='', icon='MOD_TIME')
+    row.operator(ADDON_OT_last_installed.bl_idname, text='last installed', icon='MOD_TIME')
     scene = context.scene
     label = "Disable All" if scene.switch else "Enable All"
     row.prop(scene, "switch", text=label, toggle=True, invert_checkbox=True)
     row.operator(ADDON_OT_fake_remove.bl_idname,
-                 text="", icon='TRASH')
+                 text="remove fake modules", icon='TRASH')
     row.operator(ADDON_OT_missin_script_remove.bl_idname,
-                 text="", icon='MATCLOTH')
+                 text="clean missing cripts", icon='MATCLOTH')
     row.operator(ADDON_OT_Cleaner.bl_idname,
-                 text="", icon='RIGHTARROW')
+                 text="clean lower addon versions", icon='RIGHTARROW')
 
 
 classes = (INSTALLER_OT_FileBrowser, INSTALLER_OT_TextEditor,
