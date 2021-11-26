@@ -17,7 +17,7 @@ bl_info = {
     "name": "Advanced Addons Installer",
     "description": "install save reload addons or run scripts",
     "author": "1C0D",
-    "version": (1, 3, 1),
+    "version": (1, 3, 2),
     "blender": (2, 93, 0), # and 2.3
     "location": "top bar (blender icon)/Text Editor> text menu",
     "warning": "",
@@ -1316,7 +1316,7 @@ def unregister():
     # menus entries
     bpy.types.TEXT_MT_text.remove(draw1)
     if bpy.app.version >= (2, 3, 0):
-        bpy.types.TOPBAR_MT_app.remove(draw)
+        bpy.types.TOPBAR_MT_blender.remove(draw)
     else:
         bpy.types.TOPBAR_MT_app.remove(draw)
     bpy.types.TOPBAR_MT_file.remove(draw2)
