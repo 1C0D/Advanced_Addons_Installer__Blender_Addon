@@ -1286,7 +1286,7 @@ def register():
     # menus entries
 
     bpy.types.TEXT_MT_text.append(draw1)
-    if bpy.app.version >= (2, 3, 0):
+    if bpy.app.version >= (3, 0, 0):
         bpy.types.TOPBAR_MT_blender.append(draw)
     else:
         bpy.types.TOPBAR_MT_app.append(draw)
@@ -1315,7 +1315,7 @@ def unregister():
 
     # menus entries
     bpy.types.TEXT_MT_text.remove(draw1)
-    if bpy.app.version >= (2, 3, 0):
+    if bpy.app.version >= (3, 0, 0):
         bpy.types.TOPBAR_MT_blender.remove(draw)
     else:
         bpy.types.TOPBAR_MT_app.remove(draw)
