@@ -813,6 +813,8 @@ class INSTALLER_OT_TextEditor(bpy.types.Operator):
 
     bl_idname = "installer.text_editor"
     bl_label = "Install Addon from Text Editor"
+    
+    reload : bpy.props.BoolProperty()
 
     def execute(self, context):
 
@@ -836,8 +838,9 @@ class INSTALLER_OT_TextEditor(bpy.types.Operator):
                     return {'CANCELLED'}
                     
                 name = os.path.split(ext_path)[-1]
-                # if _text.is_modified:
-                    # bpy.ops.text.resolve_conflict(resolution='RELOAD')
+                
+                if _text.is_modified and self.reload:
+                    bpy.ops.text.resolve_conflict(resolution='RELOAD')
 
             else:
                 name = _text.name
@@ -1248,7 +1251,9 @@ def draw1(self, context):
     layout.operator("installer.file_broswer",
                     text="Install/Reload Addon(s)", icon='FILEBROWSER')
     layout.operator("installer.text_editor",
-                    text="Addon from Text Editor", icon='COLLAPSEMENU')
+                    text="Addon from Text Editor", icon='COLLAPSEMENU').reload=False
+    layout.operator("installer.text_editor",
+                    text="Addon from Text Ed. [Ext Reload]", icon='COLLAPSEMENU').reload=True                    
     layout.operator("open.user_addons", text='Open User addons',
                     icon='FOLDER_REDIRECT')
 
