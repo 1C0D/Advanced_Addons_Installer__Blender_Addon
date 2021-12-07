@@ -26,7 +26,7 @@ bl_info = {
     "name": "Advanced Addons Installer",
     "description": "install save reload addons or run scripts",
     "author": "1C0D",
-    "version": (1, 3, 3),
+    "version": (1, 3, 4),
     "blender": (2, 93, 0), # and 2.3
     "location": "top bar (blender icon)/Text Editor> text menu",
     "warning": "",
@@ -835,19 +835,10 @@ class INSTALLER_OT_TextEditor(bpy.types.Operator):
                     reported(self, err, message='WRONG EXTENSION', type='ERROR')
                     return {'CANCELLED'}
                     
-                # if ext_path.endswith('.txt'):
-                    # ext_path = ext_path.split(".")[0]    
-                    # ext_path +=".py"
-                name = os.path.split(ext_path)[-1]#.split(".")[0]
-                if _text.is_modified:
-                    bpy.ops.text.resolve_conflict(resolution='RELOAD')
+                name = os.path.split(ext_path)[-1]
+                # if _text.is_modified:
+                    # bpy.ops.text.resolve_conflict(resolution='RELOAD')
 
-                # bpy.ops.preferences.addon_disable(module=name)
-                # bpy.ops.preferences.addon_remove(module=name)
-                # bpy.ops.preferences.addon_install(filepath=ext_path)
-                # bpy.ops.preferences.addon_enable(module=name)
-                #save ext
-                # bpy.ops.text.save_as(filepath=ext_path, check_existing=False)
             else:
                 name = _text.name
                 if name.split(".")[0] == 'Text':
