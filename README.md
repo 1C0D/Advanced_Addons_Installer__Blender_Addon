@@ -16,7 +16,7 @@ avoids dupplicates and fake modules
 if you drag or open a file the original file is saved when the addon is installed
 and if you modify the same file from an external text editor when installing the addon 
 the file is reloaded. no need to handle this
-![synchronisation](install from text editor synchro.gif)
+![](install from text editor synchro.gif)
   
 ## 4-run scripts (single file .py with no bl_info)  
   
