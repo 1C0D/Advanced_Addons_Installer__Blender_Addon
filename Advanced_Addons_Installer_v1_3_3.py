@@ -1,3 +1,12 @@
+"""
+links:
+install addons in a folder
+https://blender.stackexchange.com/questions/135044/how-to-install-multiple-add-ons-with-python-script/135045#135045
+resolve conflicts
+https://docs.blender.org/api/2.93/bpy.ops.text.html?highlight=resolve_conflict#bpy.ops.text.resolve_conflict
+"""
+
+
 from bpy_extras.io_utils import ImportHelper
 from pathlib import Path
 import bpy
@@ -17,7 +26,7 @@ bl_info = {
     "name": "Advanced Addons Installer",
     "description": "install save reload addons or run scripts",
     "author": "1C0D",
-    "version": (1, 3, 2),
+    "version": (1, 3, 3),
     "blender": (2, 93, 0), # and 2.3
     "location": "top bar (blender icon)/Text Editor> text menu",
     "warning": "",
@@ -166,8 +175,9 @@ def open_zip(path, err):
         return None, err
 
     with ZipFile(path, 'r') as zf:
-        init = [info.filename for info in zf.infolist(
-        ) if info.filename.split("/")[1] == '__init__.py']
+        init = [info.filename for info in zf.infolist() 
+                    if os.path.split(info.filename)[1] == '__init__.py']
+        #if info.filename.split("/")[1] == '__init__.py']
         for fic in init:
             try:
                 with io.TextIOWrapper(
@@ -617,13 +627,13 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
             for a in my_list:
                 bpy.ops.preferences.addon_disable(module=a.__name__)
 
-            greatest = addon_list  # this is not "greatest" but we need this name after
+            # greatest = addon_list  # this is not "greatest" but we need this name after
 
-        greatest_cpy = greatest[:]
-        for great in greatest:
-            name1 = great[3]
-            version = great[3]
-            path = great[4]
+        addon_list_cpy = addon_list[:]
+        for add in addon_list:
+            name1 = add[3]
+            version = add[2]
+            path = add[4]
 
             dest = os.path.join(addon_path, data_mod_name)
             name1 = name1 if not from_folder else data_mod_name
@@ -667,7 +677,8 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
                         names = [info.filename for info in f.infolist()
                                  if info.is_dir()]
                     if names:
-                        namezip = names[0].split("/")[0]
+                        namezip = os.path.split(names[0])[0]
+                        # namezip = names[0].split("/")[0]
                     else:
                         namezip = name1
 
@@ -676,29 +687,29 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
                     bpy.ops.preferences.addon_enable(module=name1)
 
             except:
-                greatest_cpy.remove(great)
+                addon_list_cpy.remove(great)
                 bpy.ops.preferences.addon_remove(module=name1)  # clean it
                 err = True
                 print(f"\n===> COULDN'T ENABLE {name1} (not installed)\n")
 
-        message = f'{len(to_remove)} REMOVED, {len(greatest_cpy)} INSTALLED/RELOADED, {len(ignored)} IGNORED'
+        message = f'{len(to_remove)} REMOVED, {len(addon_list_cpy)} INSTALLED/RELOADED, {len(ignored)} IGNORED'
 
         reported(self, err, message=message, message1='/some ERRORS (Console)')
 
         print('\n' + '_'*80 + '\n')
         print(
-            f'{len(to_remove)} REMOVED, {len(greatest_cpy)} INSTALLED/ENABLED, {len(ignored)} IGNORED')
+            f'{len(to_remove)} REMOVED, {len(addon_list_cpy)} INSTALLED/ENABLED, {len(ignored)} IGNORED')
         print(f'===> IGNORED {ignored}')
         print(
             f"===> REMOVED {[(i.bl_info['name'], i.bl_info['version']) for i in to_remove]}")
         print(
-            f'===> INSTALLED/RELOADED {[(i[1],i[2]) for i in greatest_cpy]}\n')
+            f'===> INSTALLED/RELOADED {[(i[1],i[2]) for i in addon_list_cpy]}\n')
 
         return {'FINISHED'}
 
     def draw(self, context):
 
-        header(self, context, factor=0.9)
+        # header(self, context, factor=0.9)
 
         layout = self.layout
         if self.install_folder:
@@ -806,46 +817,68 @@ class INSTALLER_OT_TextEditor(bpy.types.Operator):
     def execute(self, context):
 
         err = False
+        _text = context.space_data.text
 
-        if context.space_data.text:
+        if _text:
 
             print('\n' + '*'*50 +
-                  ' INSTALLER|RELOAD FROM TEXT EDITOR ' + '*'*50 + '\n')
+                  ' INSTALL|RELOAD FROM TEXT EDITOR ' + '*'*50 + '\n')
 
-            name = context.space_data.text.name
+            ext_path = _text.filepath
+            if ext_path:
+                if not os.path.exists(ext_path):
+                    print(f'\n===> INVALID PATH {ext_path}\n')
+                    reported(self, err, message='INVALID PATH', type='ERROR')
+                    return {'CANCELLED'}
+                if  not ext_path.endswith(('.py', '.txt')):
+                    print(f'\n===> WRONG EXTENSION {ext_path}\n')
+                    reported(self, err, message='WRONG EXTENSION', type='ERROR')
+                    return {'CANCELLED'}
+                    
+                # if ext_path.endswith('.txt'):
+                    # ext_path = ext_path.split(".")[0]    
+                    # ext_path +=".py"
+                name = os.path.split(ext_path)[-1]#.split(".")[0]
+                if _text.is_modified:
+                    bpy.ops.text.resolve_conflict(resolution='RELOAD')
 
-            split = name.split(".")
-            if split[0] == 'Text':
-                self.report(
-                    {'ERROR'}, 'Give a name to your addon (not "Text")')
-                return {'CANCELLED'}
+                # bpy.ops.preferences.addon_disable(module=name)
+                # bpy.ops.preferences.addon_remove(module=name)
+                # bpy.ops.preferences.addon_install(filepath=ext_path)
+                # bpy.ops.preferences.addon_enable(module=name)
+                #save ext
+                # bpy.ops.text.save_as(filepath=ext_path, check_existing=False)
+            else:
+                name = _text.name
+                if name.split(".")[0] == 'Text':
+                    self.report(
+                        {'ERROR'}, 'Give a name to your addon (not "Text")')
+                    return {'CANCELLED'}
 
-            text = context.space_data.text
-            addon = any(line.body.startswith("bl_info") for line in text.lines)
-            if not addon:
-                print(f'\n===> {name} has an INVALID BL_INFO\n')
-                reported(self, err, message='INVALID BL_INFO', type='ERROR')
-                return {'CANCELLED'}
+                addon = any(line.body.startswith("bl_info") for line in _text.lines)
+                if not addon:
+                    print(f'\n===> {name} has an INVALID BL_INFO\n')
+                    reported(self, err, message='INVALID BL_INFO', type='ERROR')
+                    return {'CANCELLED'}
 
-            # if same addon entered twice in text editor, name is addon.py.001
-            if not name.endswith('.py'):
-                parts = name.split(".")
-                if len(parts) > 1 and parts[-2] == 'py':
-                    parts.pop()
-                    name = ".".join(parts)
-                else:
-                    name += '.py'  # .py missing in text editor name
+                # if same addon entered twice in text editor, name is addon.py.001
+                if not name.endswith('.py'):
+                    parts = name.split(".")
+                    if len(parts) > 2 and parts[-2] == 'py':
+                        parts.pop()
+                        name = ".".join(parts)
+                    else:
+                        name += '.py'  # .py missing in text editor name
 
+            # enable addon
             addon_path = bpy.utils.user_resource('SCRIPTS', path="addons")
-            full_path = os.path.join(addon_path, name)
-
-            # save to blender addons folder
-            bpy.ops.text.save_as(filepath=full_path, check_existing=False)
-
+            full_path = os.path.join(addon_path, name)                
+            bpy.ops.text.save_as(filepath=full_path, check_existing=False)        
+            if ext_path:
+                bpy.ops.text.save_as(filepath=ext_path, check_existing=False)
             # disable
             try:
                 bpy.ops.preferences.addon_disable(module=name[:-3])
-
             except:
                 err = True
                 message = f"ERROR DISABLING PREVIOUS VERSION "
@@ -1257,11 +1290,11 @@ def header(self, context, factor=1):
     label = "Disable All" if scene.switch else "Enable All"
     row.prop(scene, "switch", text=label, toggle=True, invert_checkbox=True)
     row.operator(ADDON_OT_fake_remove.bl_idname,
-                 text="remove fake modules", icon='TRASH')
+                 text="clean fake modules", icon='TRASH')
     row.operator(ADDON_OT_missin_script_remove.bl_idname,
                  text="clean missing cripts", icon='MATCLOTH')
     row.operator(ADDON_OT_Cleaner.bl_idname,
-                 text="clean lower addon versions", icon='RIGHTARROW')
+                 text="clean lower versions addons", icon='RIGHTARROW')
 
 
 classes = (INSTALLER_OT_FileBrowser, INSTALLER_OT_TextEditor,
