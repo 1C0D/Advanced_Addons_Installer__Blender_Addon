@@ -382,6 +382,7 @@ bpy.types.Scene.print_result_bridge = bpy.props.BoolProperty(default=True)
 
 
 class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
+    """Install addon(s) from a browser"""
     bl_idname = "installer.file_broswer"
     bl_label = "Install/Reload/Run"
 
@@ -810,7 +811,7 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
 
 # checked
 class INSTALLER_OT_TextEditor(bpy.types.Operator):
-
+    """install addon from text editor (+option reload ext file) """
     bl_idname = "installer.text_editor"
     bl_label = "Install Addon from Text Editor"
     
@@ -839,8 +840,7 @@ class INSTALLER_OT_TextEditor(bpy.types.Operator):
                     
                 name = os.path.split(ext_path)[-1]
                 
-                if _text.is_modified or _text.is_dirty and self.reload:
-                    # print('----------------------------------------------------reloaded')
+                if _text.is_modified and self.reload: #!= on disk
                     bpy.ops.text.resolve_conflict(resolution='RELOAD')
 
             else:
@@ -865,35 +865,18 @@ class INSTALLER_OT_TextEditor(bpy.types.Operator):
                     else:
                         name += '.py'  # .py missing in text editor name
 
-            # enable addon
+            # disable
+            bpy.ops.preferences.addon_disable(module=name[:-3])
+            # copy to addon folder
             addon_path = bpy.utils.user_resource('SCRIPTS', path="addons")
             full_path = os.path.join(addon_path, name)                
             bpy.ops.text.save_as(filepath=full_path, check_existing=False)        
             if ext_path:
                 bpy.ops.text.save_as(filepath=ext_path, check_existing=False)
-            # disable
-            try:
-                bpy.ops.preferences.addon_disable(module=name[:-3])
-            except:
-                err = True
-                message = f"ERROR DISABLING PREVIOUS VERSION "
-                print(f"\n ===>{message} of {name}\n")
-                reported(self, err, message=message)
-                return {'CANCELLED'}
-
             # refresh
             refresh_addon(context)
-
             # enable
-            try:
-                bpy.ops.preferences.addon_enable(module=name[:-3])
-
-            except:
-                err = True
-                message = f"COULDN'T ENABLE {name} "
-                print(f"\n ===>{message}\n")
-                reported(self, err, message=message)
-                return {'CANCELLED'}
+            bpy.ops.preferences.addon_enable(module=name[:-3])
 
             self.report({'INFO'}, "Installed/Reloaded: " + name)
 
@@ -1254,7 +1237,7 @@ def draw1(self, context):
     layout.operator("installer.text_editor",
                     text="Addon from Text Editor", icon='COLLAPSEMENU').reload=False
     layout.operator("installer.text_editor",
-                    text="Addon from Text Ed. [Ext Reload]", icon='COLLAPSEMENU').reload=True                    
+                    text="Addon from Text Ed. [Reload]", icon='COLLAPSEMENU').reload=True                    
     layout.operator("open.user_addons", text='Open User addons',
                     icon='FOLDER_REDIRECT')
 
