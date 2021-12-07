@@ -839,7 +839,8 @@ class INSTALLER_OT_TextEditor(bpy.types.Operator):
                     
                 name = os.path.split(ext_path)[-1]
                 
-                if _text.is_modified and self.reload:
+                if _text.is_modified or _text.is_dirty and self.reload:
+                    # print('----------------------------------------------------reloaded')
                     bpy.ops.text.resolve_conflict(resolution='RELOAD')
 
             else:
