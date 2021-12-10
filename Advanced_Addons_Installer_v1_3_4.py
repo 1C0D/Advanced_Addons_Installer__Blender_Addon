@@ -852,6 +852,7 @@ class INSTALLER_OT_TextEditor(bpy.types.Operator):
                 except:
                     print(f'\n===> "{name}" has INVALID BL_INFO\n')
                     return {'CANCELLED'}
+                _text['ext_path'] = ext_path
 
             else:
                 name_ext = _text.name
@@ -898,14 +899,15 @@ class INSTALLER_OT_TextEditor(bpy.types.Operator):
             # copy to addon folder
             full_path = os.path.join(addon_path, name_ext)                
             bpy.ops.text.save_as(filepath=full_path, check_existing=False)        
-            if ext_path:
-                bpy.ops.text.save_as('INVOKE_DEFAULT', filepath=ext_path, check_existing=False)
             # refresh
             refresh_addon(context)
             # enable
             bpy.ops.preferences.addon_enable(module=name)
 
             self.report({'INFO'}, "Installed/Reloaded: " + name)
+            
+            if ext_path:
+                bpy.ops.text.save_as(filepath=ext_path, check_existing=False)
 
         else:
             self.report({'WARNING'}, "No Text file in Text Editor")
