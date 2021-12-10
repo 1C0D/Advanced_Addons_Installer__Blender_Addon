@@ -696,19 +696,25 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
                 bpy.ops.preferences.addon_remove(module=name1)  # clean it
                 err = True
                 print(f"\n===> COULDN'T ENABLE {name1} (not installed)\n")
-
-        message = f'{len(to_remove)} REMOVED, {len(addon_list_cpy)} INSTALLED/RELOADED, {len(ignored)} IGNORED'
-
-        reported(self, err, message=message, message1='/some ERRORS (Console)')
+        if not from_folder:
+            message = f'{len(to_remove)} REMOVED, {len(addon_list_cpy)} INSTALLED/RELOADED, {len(ignored)} IGNORED'
+            reported(self, err, message=message, message1='/some ERRORS (Console)')
+        else:
+            message = f'===> FROM FOLDER: INSTALLED/RELOADED {[(i[1],i[2]) for i in addon_list_cpy]}\n'
+            self.report({'INFO'}, message)
 
         print('\n' + '_'*80 + '\n')
-        print(
-            f'{len(to_remove)} REMOVED, {len(addon_list_cpy)} INSTALLED/ENABLED, {len(ignored)} IGNORED')
-        print(f'===> IGNORED {ignored}')
-        print(
-            f"===> REMOVED {[(i.bl_info['name'], i.bl_info['version']) for i in to_remove]}")
-        print(
-            f'===> INSTALLED/RELOADED {[(i[1],i[2]) for i in addon_list_cpy]}\n')
+        if not from_folder:
+            print(
+                f'{len(to_remove)} REMOVED, {len(addon_list_cpy)} INSTALLED/ENABLED, {len(ignored)} IGNORED')
+            print(f'===> IGNORED {ignored}')
+            print(
+                f"===> REMOVED {[(i.bl_info['name'], i.bl_info['version']) for i in to_remove]}")
+            print(
+                f'===> INSTALLED/RELOADED {[(i[1],i[2]) for i in addon_list_cpy]}\n')
+        else:
+            print(
+                f'===> FROM FOLDER: INSTALLED/RELOADED {[(i[1],i[2]) for i in addon_list_cpy]}\n')           
 
         return {'FINISHED'}
 
