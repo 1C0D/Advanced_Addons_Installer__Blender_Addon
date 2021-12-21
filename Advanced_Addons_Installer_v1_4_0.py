@@ -1,6 +1,7 @@
 """
 New:
 assert power!
+open multifiles in text editor and deal with multifiles addons from there
 
 links:
 install addons in a folder
@@ -29,7 +30,7 @@ bl_info = {
     "name": "Advanced Addons Installer",
     "description": "install save reload addons or run scripts",
     "author": "1C0D",
-    "version": (1, 3, 4),
+    "version": (1, 4, 0),
     "blender": (2, 93, 0), # and 2.3
     "location": "top bar (blender icon)/Text Editor> text menu",
     "warning": "",
@@ -233,9 +234,16 @@ def run_script(self, path, dirpath, name):
     # exec(compile(open(path).read(), path, 'exec'),{}) #not enough
     global_namespace = {
         "__file__": path, "__name__": "__main__"}
-    with open(path, 'r') as file:
-        exec(compile(file.read(), path, 'exec'),
-             global_namespace)
+    try:
+        with open(path, 'r') as file:
+            exec(compile(file.read(), path, 'exec'),
+                 global_namespace)
+    except:
+        self.report(
+            {'WARNING'}, f'WRONG PATH {path}, check your selection')
+        show_message_box(
+            message=f'WRONG PATH {path}, check your selection', title="WARNING", icon='ERROR')
+        return
 
     self.report({'INFO'}, f'RUN SCRIPT: "{name}"')
 
@@ -564,7 +572,7 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
                             message="SELECT 1 FILE ONLY IF SCRIPT", title="WARNING", icon='ERROR')
 
                         return {'CANCELLED'}
-
+                    
                     script = run_script(self, path, dirpath, name)
 
                     return {'FINISHED'}
@@ -1232,6 +1240,45 @@ class LIST_OT_all(bpy.types.Operator):
         return {'FINISHED'}
 
 
+class OPEN_OT_multi_files(bpy.types.Operator, ImportHelper):
+    """open several files in text editor"""
+    bl_idname = "open.multi_files"
+    bl_label = "open several files in text editor"
+    # bl_option = {'INTERNAL'}
+
+    filter_glob: bpy.props.StringProperty(
+        default='*.py',
+        options={'HIDDEN'},
+        subtype='FILE_PATH'  # to be sure to select a file
+    )
+    files: bpy.props.CollectionProperty(type=bpy.types.PropertyGroup)
+    directory: bpy.props.StringProperty(
+        subtype='DIR_PATH')  # to have the directory path too
+
+    def execute(self, context):
+
+        dirpath = Path(self.directory)
+        names = [text.name for text in bpy.data.texts[:]]
+        for file in self.files:
+            path = os.path.join(dirpath, file.name)
+            for n in names:
+                if file.name == n:
+                    text = context.space_data.text = bpy.data.texts[n]
+                    bpy.ops.text.unlink()           
+            bpy.ops.text.open(filepath=path)
+
+        return {'FINISHED'}
+
+    def draw(self, context):
+
+        # header(self, context, factor=0.9)
+
+        layout = self.layout
+        layout.label(text="Caution: files with same name")
+        layout.label(text="                in text editor")
+        layout.label(text="                will be replaced")
+        
+
 # ---------------------------------------- Menus ----------------------------------------
 
 
@@ -1255,6 +1302,14 @@ class ADDON_MT_management_menu(bpy.types.Menu):
         layout = self.layout
         layout.operator("installer.file_broswer",
                         text="Install/Reload Addon(s)", icon='FILEBROWSER')
+
+
+def draw0(self, context):
+
+    layout = self.layout
+    # layout.separator(factor=1.0)
+    layout.operator("open.multi_files",
+                    text="Open multifiles", icon='FILEBROWSER')
 
 
 def draw(self, context):
@@ -1321,6 +1376,7 @@ classes = (INSTALLER_OT_FileBrowser, INSTALLER_OT_TextEditor,
            ADDON_OT_enable_from_list, ADDON_MT_enable_disable_menu,
            OPEN_OT_Installed, IS_OT_Installed, LIST_OT_all,
            ADDON_OT_missin_script_remove,
+           OPEN_OT_multi_files,
            )
 
 addon_keymaps = []
@@ -1335,6 +1391,7 @@ def register():
     # menus entries
 
     bpy.types.TEXT_MT_text.append(draw1)
+    bpy.types.TEXT_MT_text.prepend(draw0)
     if bpy.app.version >= (3, 0, 0):
         bpy.types.TOPBAR_MT_blender.append(draw)
     else:
@@ -1364,6 +1421,7 @@ def unregister():
 
     # menus entries
     bpy.types.TEXT_MT_text.remove(draw1)
+    bpy.types.TEXT_MT_text.remove(draw0)
     if bpy.app.version >= (3, 0, 0):
         bpy.types.TOPBAR_MT_blender.remove(draw)
     else:
