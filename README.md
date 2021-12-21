@@ -18,6 +18,11 @@ and if you modify the same file from an external text editor when installing the
 the file is reloaded. no need to handle this   
    
 ![](from_text_editor_.gif)  
+
+New ! "open multifiles" in text editor  
+from there you can deal with multifiles addons, to do some modifications, in interaction with blender,   
+using install/reload addon and this new option  
+[watch this to understand better](https://youtu.be/VYJxFDdOBuk)    
   
 ## 4-run scripts (single file .py with no bl_info)  
   
