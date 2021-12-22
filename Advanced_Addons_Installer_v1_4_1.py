@@ -30,7 +30,7 @@ bl_info = {
     "name": "Advanced Addons Installer",
     "description": "install save reload addons or run scripts",
     "author": "1C0D",
-    "version": (1, 4, 0),
+    "version": (1, 4, 1),
     "blender": (2, 93, 0), # and 2.3
     "location": "top bar (blender icon)/Text Editor> text menu",
     "warning": "",
@@ -700,7 +700,7 @@ class INSTALLER_OT_FileBrowser(bpy.types.Operator, ImportHelper):
                     bpy.ops.preferences.addon_enable(module=name1)
 
             except:
-                addon_list_cpy.remove(great)
+                addon_list_cpy.remove(add)
                 bpy.ops.preferences.addon_remove(module=name1)  # clean it
                 err = True
                 print(f"\n===> COULDN'T ENABLE {name1} (not installed)\n")
