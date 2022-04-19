@@ -30,7 +30,7 @@ bl_info = {
     "name": "Advanced Addons Installer",
     "description": "install save reload addons or run scripts",
     "author": "1C0D",
-    "version": (1, 4, 1),
+    "version": (1, 4, 2),
     "blender": (2, 93, 0), # and 2.3
     "location": "top bar (blender icon)/Text Editor> text menu",
     "warning": "",
@@ -845,7 +845,7 @@ class INSTALLER_OT_TextEditor(bpy.types.Operator):
             print('\n' + '*'*50 +
                   ' INSTALL|RELOAD FROM TEXT EDITOR ' + '*'*50 + '\n')
 
-            ext_path = _text.filepath
+            ext_path = bpy.path.abspath(_text.filepath)
             addon_path = bpy.utils.user_resource('SCRIPTS', path="addons")
             addon_dir = os.path.dirname(ext_path)
 
@@ -856,6 +856,7 @@ class INSTALLER_OT_TextEditor(bpy.types.Operator):
                 name_ext = os.path.split(ext_path)[-1]
                 name = name_ext[:-3]
                 assert os.path.exists(ext_path), f'\n INVALID PATH {ext_path}\n'
+# problem with path after saving a file with script in it > save to temp
                 assert ext_path.endswith(('.py', '.txt')), f'\n WRONG EXTENSION {ext_path}\n'
                 data, _ = open_py(ext_path)
                 body_info, ModuleType, ast, body = use_ast(ext_path, data)
